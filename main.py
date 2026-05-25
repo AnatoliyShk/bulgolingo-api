@@ -1,19 +1,31 @@
+from contextlib import asynccontextmanager
+ 
+from aiogram.types import Update
+from aiogram.webhook.aiohttp_server import SimpleRequestHandler
 
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from contextlib import asynccontextmanager
  
-from .database import engine, Base, get_db
-from .models import Lesson
-from .schemas import LessonCreate, LessonRead
+from app.database import engine, Base, get_db
+from app.models import Lesson
+from app.schemas import LessonCreate, LessonRead
 from app import crud
  
  
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # await init_db()
+
+    # await bot.set_webhook(url=settings.WEBHOOK_URL, secret_token=settings.WEBHOOK_SECRET_TOKEN)
+    # print(f"Webhook set: {settings.webhook_url}")
+    # yield   
+    # await bot.delete_webhook()
+    # await bot.session.close()
+    # print("Webhook removed, bot session closed.")
     yield
- 
-app = FastAPI(title="FastAPI + Laravel Sail PostgreSQL", lifespan=lifespan)
+
+app = FastAPI(title="Bot API", lifespan=lifespan)
  
  
 @app.get("/")
