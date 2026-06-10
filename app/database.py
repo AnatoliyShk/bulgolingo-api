@@ -1,17 +1,9 @@
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase
-import os
- 
-# Reads from environment — see .env file
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+asyncpg://sail:password@pgsql:5432/laravel"
-    #                                      ^^^^ 
-    #  "pgsql" is the Sail service name — works because
-    #  FastAPI joins the same Docker network as Sail
-)
- 
-engine = create_async_engine(DATABASE_URL, echo=True)
+
+from app.config import settings
+
+engine = create_async_engine(settings.database_url, echo=True)
  
 AsyncSessionLocal = async_sessionmaker(
     engine,

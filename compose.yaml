@@ -9,27 +9,15 @@ services:
     volumes:
       - .:/app
     networks:
-      - sail                  # Join Sail's network so "pgsql" hostname resolves
-    depends_on:
-      - pgsql                 # Wait for pgsql to be ready
+      - sail
     restart: unless-stopped
 
-  # Reference-only — this service is owned by Laravel Sail's compose.yaml
-  # We declare it here just so "depends_on" works when running standalone.
-  # Remove this block if running alongside Sail (preferred approach).
-  pgsql:
-    image: postgres:15
-    environment:
-      POSTGRES_DB: ${DB_DATABASE:-laravel}
-      POSTGRES_USER: ${DB_USERNAME:-sail}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+  scheduler:
+    build: .
+    command: python3 scheduler.py
     networks:
       - sail
 
 networks:
   sail:
-    # Attach to the existing network created by Laravel Sail
-    # Run: docker network ls  →  find the one ending in "_sail"
-    # Usually: <your-laravel-folder>_sail
-    name: ${SAIL_NETWORK:-laravel_sail}
     external: true
