@@ -1,7 +1,7 @@
 from app.config import settings
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from .crud import get_lessons
+from .learning_paths.crud import get_lessons
 from .schemas import Report
 from aiogram import Bot
 

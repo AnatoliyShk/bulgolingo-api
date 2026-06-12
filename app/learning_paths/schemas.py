@@ -1,6 +1,6 @@
 from pydantic import BaseModel
- 
- 
+
+
 class LessonCreate(BaseModel):
     name: str
     description: str | None = None
@@ -8,6 +8,5 @@ class LessonCreate(BaseModel):
 
 class LessonRead(LessonCreate):
     id: int
- 
+
     model_config = {"from_attributes": True}
- 
