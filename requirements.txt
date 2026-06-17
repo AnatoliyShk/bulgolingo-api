@@ -1,7 +1,10 @@
+django>=5.0
+asgiref>=3.8.0
+aiogram>=3.7.0
+apscheduler>=3.10.0
+pydantic-settings>=2.2.0
 fastapi>=0.111.0
 uvicorn[standard]>=0.29.0
 asyncpg>=0.29.0
 sqlalchemy[asyncio]>=2.0.0
-aiogram>=3.7.0
-pydantic-settings>=2.2.0
-apscheduler>=3.10.0
+google-genai
