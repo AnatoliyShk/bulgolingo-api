@@ -24,7 +24,7 @@ def ask_gemini(query: Query):
     try:
         result = client.models.generate_content(
             model=query.model,
-            contents="give me random joke on Bulgarian language",
+            contents="give me random sentence in Bulgarian language",
         )
     except errors.APIError as e:
         raise HTTPException(status_code=502, detail=str(e))
