@@ -3,17 +3,16 @@ import os
 from datetime import datetime
 
 import django
-from asgiref.sync import sync_to_async
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiogram import Bot, Dispatcher, F
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
-from services import ExerciseService
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
+from services import ExerciseService  # noqa: E402
 from learning_paths.models import Exercise, Lesson  # noqa: E402
-from app.config import settings
+from app.config import settings  # noqa: E402
 
 bot = Bot(token=settings.bot_token)
 dp = Dispatcher()
