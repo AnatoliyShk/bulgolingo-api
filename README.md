@@ -6,7 +6,6 @@ built with Python and Django.
 ## Features
 - User accounts and progress tracking
 - Vocabulary and lesson endpoints
-- ...
 
 ## Stack
 Python 3 · Django · PostgreSQL · Docker
