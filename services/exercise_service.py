@@ -3,7 +3,8 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.lessons.models import Exercise, Lesson
+from app.exercises.models import Exercise
+from app.lessons.models import Lesson
 from services.gemini_service import GeminiService
 
 

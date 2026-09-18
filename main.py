@@ -4,6 +4,7 @@ from fastapi import FastAPI
 
 from app.auth.router import router as auth_router
 from app.learning_paths.router import router as learning_paths_router
+from app.exercises.router import router as exercises_router
 from app.lessons.router import router as lessons_router
 from app.gemini.router import router as gemini_router
 
@@ -25,6 +26,7 @@ app = FastAPI(title="Bot API", lifespan=lifespan)
 app.include_router(auth_router)
 app.include_router(learning_paths_router)
 app.include_router(lessons_router)
+app.include_router(exercises_router)
 app.include_router(gemini_router)
 
 
