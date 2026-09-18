@@ -35,15 +35,49 @@ this API reads/writes the shared production schema (`learning_paths`, `lessons`,
 it does not own a separate database.
 
 ## Current endpoints
-- `GET /` — health check
-- `GET /docs` / `/redoc` — interactive API docs (Swagger / ReDoc)
-- `POST /login` — exchange `{email, password}` for a JWT access token
-- `GET /learning-paths/`, `GET /learning-paths/{id}` — learning paths (require auth)
-- `GET /lessons/`, `POST /lessons/`, `GET /lessons/{id}`, `PUT /lessons/{id}`, `PATCH /lessons/{id}`, `DELETE /lessons/{id}` — lesson CRUD (require auth)
-- `GET /exercises/`, `POST /exercises/`, `GET /exercises/{id}`, `PUT /exercises/{id}`, `PATCH /exercises/{id}`, `DELETE /exercises/{id}` — exercise CRUD (require auth)
-- `POST /ask` — proxy to Gemini AI (requires auth)
-
 Every endpoint requires `Authorization: Bearer <token>` except `GET /`, `GET /docs`/`/redoc`, and `POST /login` itself.
+
+### General
+| Method | Route | Auth | Notes |
+|---|---|---|---|
+| GET | `/` | No | Health check |
+| GET | `/docs`, `/redoc` | No | Interactive API docs (Swagger / ReDoc) |
+
+### `app/auth`
+| Method | Route | Auth | Notes |
+|---|---|---|---|
+| POST | `/login` | No | Exchange `{email, password}` for a JWT access token |
+
+### `app/learning_paths`
+| Method | Route | Auth | Notes |
+|---|---|---|---|
+| GET | `/learning-paths/` | Yes | List learning paths |
+| GET | `/learning-paths/{id}` | Yes | Get one learning path |
+
+### `app/lessons`
+| Method | Route | Auth | Notes |
+|---|---|---|---|
+| GET | `/lessons/` | Yes | List lessons |
+| POST | `/lessons/` | Yes | Create a lesson |
+| GET | `/lessons/{id}` | Yes | Get one lesson |
+| PUT | `/lessons/{id}` | Yes | Replace a lesson |
+| PATCH | `/lessons/{id}` | Yes | Partially update a lesson |
+| DELETE | `/lessons/{id}` | Yes | Delete a lesson |
+
+### `app/exercises`
+| Method | Route | Auth | Notes |
+|---|---|---|---|
+| GET | `/exercises/` | Yes | List exercises |
+| POST | `/exercises/` | Yes | Create an exercise |
+| GET | `/exercises/{id}` | Yes | Get one exercise |
+| PUT | `/exercises/{id}` | Yes | Replace an exercise |
+| PATCH | `/exercises/{id}` | Yes | Partially update an exercise |
+| DELETE | `/exercises/{id}` | Yes | Delete an exercise |
+
+### `app/gemini`
+| Method | Route | Auth | Notes |
+|---|---|---|---|
+| POST | `/ask` | Yes | Proxy to Gemini AI |
 
 ## Environment variables
 Copy `.env.example` to `.env` and set:
