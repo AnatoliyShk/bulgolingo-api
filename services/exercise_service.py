@@ -1,11 +1,20 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import BigInteger, Column, Integer, Table, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.database import Base
 from app.exercises.models import Exercise
 from app.lessons.models import Lesson
 from services.gemini_service import GeminiService
+
+exercise_lesson = Table(
+    "exercise_lesson",
+    Base.metadata,
+    Column("lesson_id", BigInteger),
+    Column("exercise_id", BigInteger),
+    Column("order", Integer),
+)
 
 
 class ExerciseService:
@@ -13,11 +22,10 @@ class ExerciseService:
         self.gemini_service = gemini_service
 
     @staticmethod
-    async def get_incomplete_lesson(db: AsyncSession) -> Lesson | None:
+    async def get_lesson_with_exercises(db: AsyncSession) -> Lesson | None:
         result = await db.execute(
             select(Lesson)
-            .join(Exercise)
-            .where(Exercise.is_completed.is_(False))
+            .join(exercise_lesson, exercise_lesson.c.lesson_id == Lesson.id)
             .order_by(Lesson.created_at)
             .limit(1)
         )
@@ -28,20 +36,13 @@ class ExerciseService:
         return await db.get(Exercise, exercise_id)
 
     @staticmethod
-    async def complete_exercise(db: AsyncSession, exercise: Exercise) -> Exercise:
-        exercise.is_completed = True
-        await db.commit()
-        await db.refresh(exercise)
-        return exercise
-
-    @staticmethod
-    async def get_uncompleted_fill_in_the_blank(db: AsyncSession, lesson: Lesson) -> Exercise | None:
+    async def get_fill_in_the_blank_exercise(db: AsyncSession, lesson: Lesson) -> Exercise | None:
         result = await db.execute(
             select(Exercise)
+            .join(exercise_lesson, exercise_lesson.c.exercise_id == Exercise.id)
             .where(
-                Exercise.lesson_id == lesson.id,
+                exercise_lesson.c.lesson_id == lesson.id,
                 Exercise.decision_type == "fill_in_the_blank",
-                Exercise.is_completed.is_(False),
             )
             .order_by(Exercise.created_at)
             .limit(1)
@@ -51,8 +52,7 @@ class ExerciseService:
     async def create_exercise(self, db: AsyncSession, lesson_id: int, decision_type: str) -> Exercise:
         exercise_data = self.gemini_service.generate_exercise()
         exercise = Exercise(
-            name=f"Exercise for clause '{exercise_data['clause']['sentence']}'",
-            lesson_id=lesson_id,
+            name=f"Exercise for clause '{exercise_data['sentence']}'",
             clause=exercise_data,
             decision_type=decision_type,
             created_at=datetime.now(timezone.utc),
@@ -60,4 +60,8 @@ class ExerciseService:
         db.add(exercise)
         await db.commit()
         await db.refresh(exercise)
+
+        await db.execute(insert(exercise_lesson).values(lesson_id=lesson_id, exercise_id=exercise.id))
+        await db.commit()
+
         return exercise

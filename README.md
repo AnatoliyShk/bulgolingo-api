@@ -25,7 +25,10 @@ Each resource is its own module under `app/`:
 - `app/gemini/` — Gemini AI proxy route
 
 Business logic lives in `services/` (`GeminiService` for calling Gemini, `ExerciseService` for
-generating and persisting exercises), used by `scheduler.py`.
+generating and persisting exercises), used by `scheduler.py`. `ExerciseService` has no notion of
+"completed" exercises — it picks the earliest lesson with exercises and its earliest
+fill-in-the-blank exercise every run, so the scheduler currently resends the same exercise on
+every hourly tick rather than progressing through a lesson.
 
 The connected PostgreSQL database is the same one used by the companion Laravel app (`bulgolingo`) —
 this API reads/writes the shared production schema (`learning_paths`, `lessons`, `exercises`, `users`, etc.),
@@ -35,11 +38,12 @@ it does not own a separate database.
 - `GET /` — health check
 - `GET /docs` / `/redoc` — interactive API docs (Swagger / ReDoc)
 - `POST /login` — exchange `{email, password}` for a JWT access token
-- `GET /learning-paths/` — list learning paths
-- `GET /learning-paths/{id}` — get one learning path (requires `Authorization: Bearer <token>`)
-- `GET /lessons/`, `POST /lessons/`, `GET /lessons/{id}`, `PUT /lessons/{id}`, `PATCH /lessons/{id}`, `DELETE /lessons/{id}` — lesson CRUD (all require auth)
-- `GET /exercises/`, `POST /exercises/`, `GET /exercises/{id}`, `PUT /exercises/{id}`, `PATCH /exercises/{id}`, `DELETE /exercises/{id}` — exercise CRUD (all require auth)
-- `POST /ask` — proxy to Gemini AI
+- `GET /learning-paths/`, `GET /learning-paths/{id}` — learning paths (require auth)
+- `GET /lessons/`, `POST /lessons/`, `GET /lessons/{id}`, `PUT /lessons/{id}`, `PATCH /lessons/{id}`, `DELETE /lessons/{id}` — lesson CRUD (require auth)
+- `GET /exercises/`, `POST /exercises/`, `GET /exercises/{id}`, `PUT /exercises/{id}`, `PATCH /exercises/{id}`, `DELETE /exercises/{id}` — exercise CRUD (require auth)
+- `POST /ask` — proxy to Gemini AI (requires auth)
+
+Every endpoint requires `Authorization: Bearer <token>` except `GET /`, `GET /docs`/`/redoc`, and `POST /login` itself.
 
 ## Environment variables
 Copy `.env.example` to `.env` and set:
@@ -64,13 +68,4 @@ Requires an external Docker network named `sail` — create it first if it doesn
 (`docker network create sail`).
 
 ## Known issues
-- `GeminiService.generate_exercise()` (in `services/gemini_service.py`) calls an OpenAI-style
-  API (`client.chat.completions.create`), but the installed SDK is `google-genai`, which uses
-  `client.models.generate_content` — this will fail at runtime.
-- `services/exercise_service.py` references `Exercise.is_completed` and `Exercise.lesson_id`,
-  and joins `Lesson`/`Exercise` via a relationship — none of these exist on the live schema
-  (completion state lives in `user_exercise_completions`, the lesson/exercise link is the
-  `exercise_lesson` pivot table). This breaks the scheduler's exercise-sending flow at runtime.
-- `app/learning_paths/router.py`'s list endpoint has no auth dependency while its detail endpoint
-  does — likely unfinished, worth confirming intent before relying on either behavior.
-- `app/routes.py` is unused dead code.
+None currently known.

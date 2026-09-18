@@ -16,14 +16,14 @@ CHAT_ID = 304642547
 
 async def send_hourly_report():
     async with AsyncSessionLocal() as db:
-        lesson = await ExerciseService.get_incomplete_lesson(db)
+        lesson = await ExerciseService.get_lesson_with_exercises(db)
         if not lesson:
-            await bot.send_message(CHAT_ID, "No incomplete lessons found.")
+            await bot.send_message(CHAT_ID, "No lessons with exercises found.")
             return
 
-        exercise = await ExerciseService.get_uncompleted_fill_in_the_blank(db, lesson)
+        exercise = await ExerciseService.get_fill_in_the_blank_exercise(db, lesson)
         if not exercise:
-            await bot.send_message(CHAT_ID, "No uncompleted exercises found.")
+            await bot.send_message(CHAT_ID, "No fill-in-the-blank exercises found.")
             return
 
         clause = exercise.clause
@@ -49,7 +49,6 @@ async def handle_quiz_answer(callback: CallbackQuery):
         clause = exercise.clause
 
         if int(option_index) == clause["correct_option"]:
-            await ExerciseService.complete_exercise(db, exercise)
             await callback.message.answer("Correct")
         else:
             await callback.message.answer(clause["explanation"])

@@ -1,8 +1,10 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from google import genai
 from google.genai import errors
 from pydantic import BaseModel
 
+from app.auth.dependencies import get_current_user
+from app.auth.models import User
 from app.config import settings
 
 router = APIRouter(tags=["gemini"])
@@ -20,7 +22,7 @@ class Answer(BaseModel):
 
 
 @router.post("/ask", response_model=Answer)
-def ask_gemini(query: Query):
+def ask_gemini(query: Query, current_user: User = Depends(get_current_user)):
     try:
         result = client.models.generate_content(
             model=query.model,
