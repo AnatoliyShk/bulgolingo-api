@@ -36,16 +36,19 @@ Copy `.env.example` to `.env`. Required variables:
 | Settings | `app/config.py` — `Settings` (pydantic-settings, reads `.env`) |
 | DB engine/session | `app/database.py` — async SQLAlchemy engine + session factory; `get_db()` dependency, `Base` declarative base |
 | Auth | `app/auth/` — `User` model, JWT login (`POST /login`), `get_current_user` dependency used to protect routes |
-| Learning paths | `app/learning_paths/` — `LearningPath` model + REST routes |
-| Lessons | `app/lessons/` — `Lesson` and `Exercise` models + REST routes for lessons (`GET/POST /lessons/`, `GET/PUT/PATCH/DELETE /lessons/{id}`) |
+| Learning paths | `app/learning_paths/` — `LearningPath` model + REST routes (`GET /learning-paths/`, `GET /learning-paths/{id}`) |
+| Lessons | `app/lessons/` — `Lesson` model + REST routes (`GET/POST /lessons/`, `GET/PUT/PATCH/DELETE /lessons/{id}`) |
+| Exercises | `app/exercises/` — `Exercise` model + REST routes (`GET/POST /exercises/`, `GET/PUT/PATCH/DELETE /exercises/{id}`) |
 | Gemini AI | `app/gemini/router.py` — `POST /ask` endpoint proxying to Gemini |
 | Business logic | `services/` — `GeminiService`, `ExerciseService` |
 
 All persistence goes through SQLAlchemy async models under `app/`; there is no other ORM or data layer in this project.
 
+The Postgres database is owned by a separate Laravel/Sail app (see `DATABASE_URL` — a `laravel` user), not by this repo, and this repo has no migrations of its own. `User`, `LearningPath`, `Lesson`, and `Exercise` each have a real bigint `id` primary key (Laravel-managed) plus a separate unique `uuid` column (UUIDv7, also Laravel-managed). The SQLAlchemy models expose this as two attributes: `pk` (`Mapped[int]`, mapped to the DB's `id` column — internal only, used for joins against the legacy bigint association tables `learning_path_lesson`/`exercise_lesson`) and `id` (`Mapped[uuid.UUID]`, mapped to the DB's `uuid` column — this is the public identifier used in every route path param, every response schema, and the JWT `sub` claim). Never use `db.get(Model, ...)` for these models since the primary key (`pk`) is not the public id — look up by `select(Model).where(Model.id == given_uuid)` instead.
+
 ### Services (`services/`)
 - `GeminiService` — wraps `google.genai.Client`, calls Gemini to generate Bulgarian fill-in-the-blank exercises
-- `ExerciseService` — queries `app.lessons.models.Lesson`/`Exercise` via an `AsyncSession` for incomplete lessons/exercises, calls `GeminiService.generate_exercise()`, creates `Exercise` records
+- `ExerciseService` — queries `app.lessons.models.Lesson` and `app.exercises.models.Exercise` via an `AsyncSession` for incomplete lessons/exercises, calls `GeminiService.generate_exercise()`, creates `Exercise` records
 - Used by `scheduler.py` (not by the FastAPI routes directly)
 
 ### Scheduler (`scheduler.py`)
@@ -55,6 +58,4 @@ All persistence goes through SQLAlchemy async models under `app/`; there is no o
 
 ## Key inconsistencies to be aware of
 
-- `app/routes.py` is unused dead code (imports modules that don't exist: `.learning_paths.crud`, `.schemas`)
-- `GeminiService.generate_exercise()` uses the OpenAI-style `client.chat.completions.create` API, but the installed SDK is `google-genai` which uses `client.models.generate_content` — this method will fail at runtime
-- `app/learning_paths/router.py`'s list endpoint has no auth dependency while its detail endpoint does — likely unfinished, worth confirming with the user before relying on either behavior
+- The `learning_path_lesson` and `exercise_lesson` association tables (in `app/lessons/models.py` and `services/exercise_service.py`) store plain bigint columns for `lesson_id`/`exercise_id`/`learning_path_id` (referencing the internal `pk`, not the public `uuid`) and declare no `ForeignKey` constraint to the parent tables

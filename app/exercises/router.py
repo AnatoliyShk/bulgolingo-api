@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -13,8 +14,9 @@ from app.exercises.schemas import ExerciseCreate, ExerciseOut, ExercisePatch, Ex
 router = APIRouter(prefix="/exercises", tags=["exercises"])
 
 
-async def _get_exercise_or_404(exercise_id: int, db: AsyncSession) -> Exercise:
-    exercise = await db.get(Exercise, exercise_id)
+async def _get_exercise_or_404(exercise_id: uuid.UUID, db: AsyncSession) -> Exercise:
+    result = await db.execute(select(Exercise).where(Exercise.id == exercise_id))
+    exercise = result.scalar_one_or_none()
     if exercise is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exercise not found")
     return exercise
@@ -49,7 +51,7 @@ async def create_exercise(
 
 @router.get("/{exercise_id}", response_model=ExerciseOut)
 async def get_exercise(
-    exercise_id: int,
+    exercise_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -58,7 +60,7 @@ async def get_exercise(
 
 @router.put("/{exercise_id}", response_model=ExerciseOut)
 async def replace_exercise(
-    exercise_id: int,
+    exercise_id: uuid.UUID,
     payload: ExerciseUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -75,7 +77,7 @@ async def replace_exercise(
 
 @router.patch("/{exercise_id}", response_model=ExerciseOut)
 async def update_exercise(
-    exercise_id: int,
+    exercise_id: uuid.UUID,
     payload: ExercisePatch,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -92,7 +94,7 @@ async def update_exercise(
 
 @router.delete("/{exercise_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_exercise(
-    exercise_id: int,
+    exercise_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):

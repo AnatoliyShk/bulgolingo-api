@@ -27,7 +27,8 @@ async def get_current_user(
     except jwt.PyJWTError:
         raise unauthorized
 
-    user = await db.get(User, user_id)
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
     if user is None:
         raise unauthorized
 

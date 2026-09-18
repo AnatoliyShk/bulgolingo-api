@@ -1,20 +1,22 @@
+import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
 from app.auth.models import User
 from app.database import get_db
-from app.lessons.models import Lesson
+from app.lessons.models import Lesson, learning_path_lesson
 from app.lessons.schemas import LessonCreate, LessonOut, LessonPatch, LessonUpdate
 
 router = APIRouter(prefix="/lessons", tags=["lessons"])
 
 
-async def _get_lesson_or_404(lesson_id: int, db: AsyncSession) -> Lesson:
-    lesson = await db.get(Lesson, lesson_id)
+async def _get_lesson_or_404(lesson_id: uuid.UUID, db: AsyncSession) -> Lesson:
+    result = await db.execute(select(Lesson).where(Lesson.id == lesson_id))
+    lesson = result.scalar_one_or_none()
     if lesson is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lesson not found")
     return lesson
@@ -22,10 +24,16 @@ async def _get_lesson_or_404(lesson_id: int, db: AsyncSession) -> Lesson:
 
 @router.get("/", response_model=list[LessonOut])
 async def list_lessons(
+    is_completed: bool | None = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    result = await db.execute(select(Lesson))
+    query = select(Lesson)
+    if is_completed is not None:
+        query = query.join(
+            learning_path_lesson, learning_path_lesson.c.lesson_id == Lesson.pk
+        ).where(learning_path_lesson.c.is_completed == is_completed)
+    result = await db.execute(query)
     return result.scalars().all()
 
 
@@ -48,7 +56,7 @@ async def create_lesson(
 
 @router.get("/{lesson_id}", response_model=LessonOut)
 async def get_lesson(
-    lesson_id: int,
+    lesson_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -57,7 +65,7 @@ async def get_lesson(
 
 @router.put("/{lesson_id}", response_model=LessonOut)
 async def replace_lesson(
-    lesson_id: int,
+    lesson_id: uuid.UUID,
     payload: LessonUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -73,7 +81,7 @@ async def replace_lesson(
 
 @router.patch("/{lesson_id}", response_model=LessonOut)
 async def update_lesson(
-    lesson_id: int,
+    lesson_id: uuid.UUID,
     payload: LessonPatch,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -90,7 +98,7 @@ async def update_lesson(
 
 @router.delete("/{lesson_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_lesson(
-    lesson_id: int,
+    lesson_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):

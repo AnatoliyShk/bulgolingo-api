@@ -1,4 +1,5 @@
 import asyncio
+import uuid
 from datetime import datetime
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -45,7 +46,7 @@ async def send_hourly_report():
 async def handle_quiz_answer(callback: CallbackQuery):
     _, exercise_id, option_index = callback.data.split(":")
     async with AsyncSessionLocal() as db:
-        exercise = await ExerciseService.get_exercise(db, int(exercise_id))
+        exercise = await ExerciseService.get_exercise(db, uuid.UUID(exercise_id))
         clause = exercise.clause
 
         if int(option_index) == clause["correct_option"]:

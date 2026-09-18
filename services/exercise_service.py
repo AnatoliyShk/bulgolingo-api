@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import BigInteger, Column, Integer, Table, insert, select
@@ -25,23 +26,24 @@ class ExerciseService:
     async def get_lesson_with_exercises(db: AsyncSession) -> Lesson | None:
         result = await db.execute(
             select(Lesson)
-            .join(exercise_lesson, exercise_lesson.c.lesson_id == Lesson.id)
+            .join(exercise_lesson, exercise_lesson.c.lesson_id == Lesson.pk)
             .order_by(Lesson.created_at)
             .limit(1)
         )
         return result.scalars().first()
 
     @staticmethod
-    async def get_exercise(db: AsyncSession, exercise_id: int) -> Exercise | None:
-        return await db.get(Exercise, exercise_id)
+    async def get_exercise(db: AsyncSession, exercise_id: uuid.UUID) -> Exercise | None:
+        result = await db.execute(select(Exercise).where(Exercise.id == exercise_id))
+        return result.scalar_one_or_none()
 
     @staticmethod
     async def get_fill_in_the_blank_exercise(db: AsyncSession, lesson: Lesson) -> Exercise | None:
         result = await db.execute(
             select(Exercise)
-            .join(exercise_lesson, exercise_lesson.c.exercise_id == Exercise.id)
+            .join(exercise_lesson, exercise_lesson.c.exercise_id == Exercise.pk)
             .where(
-                exercise_lesson.c.lesson_id == lesson.id,
+                exercise_lesson.c.lesson_id == lesson.pk,
                 Exercise.decision_type == "fill_in_the_blank",
             )
             .order_by(Exercise.created_at)
@@ -49,7 +51,7 @@ class ExerciseService:
         )
         return result.scalars().first()
 
-    async def create_exercise(self, db: AsyncSession, lesson_id: int, decision_type: str) -> Exercise:
+    async def create_exercise(self, db: AsyncSession, lesson_pk: int, decision_type: str) -> Exercise:
         exercise_data = self.gemini_service.generate_exercise()
         exercise = Exercise(
             name=f"Exercise for clause '{exercise_data['sentence']}'",
@@ -61,7 +63,7 @@ class ExerciseService:
         await db.commit()
         await db.refresh(exercise)
 
-        await db.execute(insert(exercise_lesson).values(lesson_id=lesson_id, exercise_id=exercise.id))
+        await db.execute(insert(exercise_lesson).values(lesson_id=lesson_pk, exercise_id=exercise.pk))
         await db.commit()
 
         return exercise

@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,11 +24,12 @@ async def list_learning_paths(
 
 @router.get("/{learning_path_id}", response_model=LearningPathOut)
 async def get_learning_path(
-    learning_path_id: int,
+    learning_path_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    learning_path = await db.get(LearningPath, learning_path_id)
+    result = await db.execute(select(LearningPath).where(LearningPath.id == learning_path_id))
+    learning_path = result.scalar_one_or_none()
     if learning_path is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Learning path not found")
     return learning_path
