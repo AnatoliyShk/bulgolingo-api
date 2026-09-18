@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     bot_token: str = Field(..., env="BOT_TOKEN")
     gemini_api_key: str = Field(..., env="GEMINI_API_KEY")
     database_url: str = Field(..., env="DATABASE_URL")
+    jwt_secret_key: str = Field(..., env="JWT_SECRET_KEY")
+    jwt_algorithm: str = Field("HS256", env="JWT_ALGORITHM")
+    jwt_expire_minutes: int = Field(60, env="JWT_EXPIRE_MINUTES")
 
     # @property
     # def webhook_url(self) -> str:

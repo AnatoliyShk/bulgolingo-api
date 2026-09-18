@@ -1,4 +1,3 @@
-from django.conf import settings
 from fastapi import APIRouter, HTTPException
 from google import genai
 from google.genai import errors

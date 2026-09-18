@@ -1,48 +1,62 @@
-from asgiref.sync import sync_to_async
-from learning_paths.models import Exercise, Lesson
+from datetime import datetime, timezone
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.lessons.models import Exercise, Lesson
 from services.gemini_service import GeminiService
+
 
 class ExerciseService:
     def __init__(self, gemini_service: GeminiService):
         self.gemini_service = gemini_service
 
     @staticmethod
-    @sync_to_async
-    def get_incomplete_lesson():
-        return (
-            Lesson.objects.filter(exercises__is_completed=False)
-            .order_by('created_at')
-            .first()
+    async def get_incomplete_lesson(db: AsyncSession) -> Lesson | None:
+        result = await db.execute(
+            select(Lesson)
+            .join(Exercise)
+            .where(Exercise.is_completed.is_(False))
+            .order_by(Lesson.created_at)
+            .limit(1)
         )
+        return result.scalars().first()
 
     @staticmethod
-    @sync_to_async
-    def get_exercise(exercise_id: int):
-        return Exercise.objects.select_related('lesson').get(pk=exercise_id)
+    async def get_exercise(db: AsyncSession, exercise_id: int) -> Exercise | None:
+        return await db.get(Exercise, exercise_id)
 
     @staticmethod
-    @sync_to_async
-    def complete_exercise(exercise: Exercise):
+    async def complete_exercise(db: AsyncSession, exercise: Exercise) -> Exercise:
         exercise.is_completed = True
-        exercise.save(update_fields=['is_completed'])
+        await db.commit()
+        await db.refresh(exercise)
         return exercise
 
     @staticmethod
-    @sync_to_async
-    def get_uncompleted_fill_in_the_blank(lesson: Lesson):
-        exercises = [
-            e for e in lesson.exercises.all()
-            if e.decision_type == 'fill_in_the_blank' and not e.is_completed
-        ]
-        if not exercises:
-            return None
-        return min(exercises, key=lambda e: e.created_at)
+    async def get_uncompleted_fill_in_the_blank(db: AsyncSession, lesson: Lesson) -> Exercise | None:
+        result = await db.execute(
+            select(Exercise)
+            .where(
+                Exercise.lesson_id == lesson.id,
+                Exercise.decision_type == "fill_in_the_blank",
+                Exercise.is_completed.is_(False),
+            )
+            .order_by(Exercise.created_at)
+            .limit(1)
+        )
+        return result.scalars().first()
 
-    def create_exercise(self, decision_type: str) -> Exercise:
+    async def create_exercise(self, db: AsyncSession, lesson_id: int, decision_type: str) -> Exercise:
         exercise_data = self.gemini_service.generate_exercise()
-        exercise = Exercise.objects.create(
+        exercise = Exercise(
             name=f"Exercise for clause '{exercise_data['clause']['sentence']}'",
+            lesson_id=lesson_id,
             clause=exercise_data,
             decision_type=decision_type,
+            created_at=datetime.now(timezone.utc),
         )
+        db.add(exercise)
+        await db.commit()
+        await db.refresh(exercise)
         return exercise

@@ -1,18 +1,13 @@
 import asyncio
-import os
 from datetime import datetime
 
-import django
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiogram import Bot, Dispatcher, F
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
-django.setup()
-
-from services import ExerciseService  # noqa: E402
-from learning_paths.models import Exercise, Lesson  # noqa: E402
-from app.config import settings  # noqa: E402
+from services import ExerciseService
+from app.config import settings
+from app.database import AsyncSessionLocal
 
 bot = Bot(token=settings.bot_token)
 dp = Dispatcher()
@@ -20,42 +15,44 @@ CHAT_ID = 304642547
 
 
 async def send_hourly_report():
-    lesson = await ExerciseService.get_incomplete_lesson()
-    if not lesson:
-        await bot.send_message(CHAT_ID, "No incomplete lessons found.")
-        return
+    async with AsyncSessionLocal() as db:
+        lesson = await ExerciseService.get_incomplete_lesson(db)
+        if not lesson:
+            await bot.send_message(CHAT_ID, "No incomplete lessons found.")
+            return
 
-    exercise = await ExerciseService.get_uncompleted_fill_in_the_blank(lesson)
-    if not exercise:
-        await bot.send_message(CHAT_ID, "No uncompleted exercises found.")
-        return
+        exercise = await ExerciseService.get_uncompleted_fill_in_the_blank(db, lesson)
+        if not exercise:
+            await bot.send_message(CHAT_ID, "No uncompleted exercises found.")
+            return
 
-    clause = exercise.clause
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text=option,
-                    callback_data=f"quiz:{exercise.id}:{index}",
-                )
+        clause = exercise.clause
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text=option,
+                        callback_data=f"quiz:{exercise.id}:{index}",
+                    )
+                ]
+                for index, option in enumerate(clause["options"])
             ]
-            for index, option in enumerate(clause["options"])
-        ]
-    )
-    await bot.send_message(CHAT_ID, clause["sentence"], reply_markup=keyboard)
+        )
+        await bot.send_message(CHAT_ID, clause["sentence"], reply_markup=keyboard)
 
 
 @dp.callback_query(F.data.startswith("quiz:"))
 async def handle_quiz_answer(callback: CallbackQuery):
     _, exercise_id, option_index = callback.data.split(":")
-    exercise = await ExerciseService.get_exercise(int(exercise_id))
-    clause = exercise.clause
+    async with AsyncSessionLocal() as db:
+        exercise = await ExerciseService.get_exercise(db, int(exercise_id))
+        clause = exercise.clause
 
-    if int(option_index) == clause["correct_option"]:
-        await ExerciseService.complete_exercise(exercise)
-        await callback.message.answer("Correct")
-    else:
-        await callback.message.answer(clause["explanation"])
+        if int(option_index) == clause["correct_option"]:
+            await ExerciseService.complete_exercise(db, exercise)
+            await callback.message.answer("Correct")
+        else:
+            await callback.message.answer(clause["explanation"])
 
     await callback.answer()
 
