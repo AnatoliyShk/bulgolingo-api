@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,10 +15,14 @@ router = APIRouter(prefix="/learning-paths", tags=["learning-paths"])
 
 @router.get("/", response_model=list[LearningPathOut])
 async def list_learning_paths(
+    level: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    result = await db.execute(select(LearningPath))
+    query = select(LearningPath)
+    if level is not None:
+        query = query.where(LearningPath.level == level)
+    result = await db.execute(query)
     return result.scalars().all()
 
 
