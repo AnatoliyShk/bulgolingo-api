@@ -39,12 +39,14 @@ Copy `.env.example` to `.env`. Required variables:
 | Learning paths | `app/learning_paths/` — `LearningPath` model + REST routes (`GET /learning-paths/`, `GET /learning-paths/{id}`) |
 | Lessons | `app/lessons/` — `Lesson` model + REST routes (`GET/POST /lessons/`, `GET/PUT/PATCH/DELETE /lessons/{id}`) |
 | Exercises | `app/exercises/` — `Exercise` model + REST routes (`GET/POST /exercises/`, `GET/PUT/PATCH/DELETE /exercises/{id}`) |
+| Scripted dialogues | `app/scripted_dialogues/` — `ScriptedDialogue` model + REST routes (`GET/POST /scripted-dialogues/`, `GET/PUT/PATCH/DELETE /scripted-dialogues/{id}`) |
+| Scripted lines | `app/scripted_lines/` — `ScriptedLine` model + REST routes (`GET/POST /scripted-lines/`, `GET/PUT/PATCH/DELETE /scripted-lines/{id}`) |
 | Gemini AI | `app/gemini/router.py` — `POST /ask` endpoint proxying to Gemini |
 | Business logic | `services/` — `GeminiService`, `ExerciseService` |
 
 All persistence goes through SQLAlchemy async models under `app/`; there is no other ORM or data layer in this project.
 
-The Postgres database is owned by a separate Laravel/Sail app (see `DATABASE_URL` — a `laravel` user), not by this repo, and this repo has no migrations of its own. `User`, `LearningPath`, `Lesson`, and `Exercise` each have a real bigint `id` primary key (Laravel-managed) plus a separate unique `uuid` column (UUIDv7, also Laravel-managed). The SQLAlchemy models expose this as two attributes: `pk` (`Mapped[int]`, mapped to the DB's `id` column — internal only, used for joins against the legacy bigint association tables `learning_path_lesson`/`exercise_lesson`) and `id` (`Mapped[uuid.UUID]`, mapped to the DB's `uuid` column — this is the public identifier used in every route path param, every response schema, and the JWT `sub` claim). Never use `db.get(Model, ...)` for these models since the primary key (`pk`) is not the public id — look up by `select(Model).where(Model.id == given_uuid)` instead.
+The Postgres database is owned by a separate Laravel/Sail app (see `DATABASE_URL` — a `laravel` user), not by this repo, and this repo has no migrations of its own. `User`, `LearningPath`, `Lesson`, `Exercise`, `ScriptedDialogue`, and `ScriptedLine` each have a real bigint `id` primary key (Laravel-managed) plus a separate unique `uuid` column (UUIDv7, also Laravel-managed). The SQLAlchemy models expose this as two attributes: `pk` (`Mapped[int]`, mapped to the DB's `id` column — internal only, used for joins against the legacy bigint association tables `learning_path_lesson`/`exercise_lesson`) and `id` (`Mapped[uuid.UUID]`, mapped to the DB's `uuid` column — this is the public identifier used in every route path param, every response schema, and the JWT `sub` claim). Never use `db.get(Model, ...)` for these models since the primary key (`pk`) is not the public id — look up by `select(Model).where(Model.id == given_uuid)` instead.
 
 ### Services (`services/`)
 - `GeminiService` — wraps `google.genai.Client`, calls Gemini to generate Bulgarian fill-in-the-blank exercises
@@ -58,4 +60,5 @@ The Postgres database is owned by a separate Laravel/Sail app (see `DATABASE_URL
 
 ## Key inconsistencies to be aware of
 
+- `scripted_dialogues.user_id` and `scripted_lines.scripted_dialogue_id` are real bigint foreign keys to the parent `pk`, so the models map them as `user_pk` / `dialogue_pk` and expose the parent's public uuid through the `user_id` / `dialogue_id` properties (backed by a `selectin` relationship). Routes take and return those uuids and resolve them to a `pk` before writing.
 - The `learning_path_lesson` and `exercise_lesson` association tables (in `app/lessons/models.py` and `services/exercise_service.py`) store plain bigint columns for `lesson_id`/`exercise_id`/`learning_path_id` (referencing the internal `pk`, not the public `uuid`) and declare no `ForeignKey` constraint to the parent tables
