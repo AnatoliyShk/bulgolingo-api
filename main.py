@@ -10,6 +10,7 @@ from app.lexemas.router import router as lexemas_router
 from app.scripted_dialogues.router import router as scripted_dialogues_router
 from app.scripted_lines.router import router as scripted_lines_router
 from app.gemini.router import router as gemini_router
+from app.rag.router import router as rag_router
 
 
 @asynccontextmanager
@@ -24,7 +25,7 @@ async def lifespan(app: FastAPI):
     # print("Webhook removed, bot session closed.")
     yield
 
-app = FastAPI(title="Bot API", version="0.5.0", lifespan=lifespan)
+app = FastAPI(title="Bot API", version="0.6.0", lifespan=lifespan)
 
 app.include_router(auth_router)
 app.include_router(learning_paths_router)
@@ -34,6 +35,7 @@ app.include_router(lexemas_router)
 app.include_router(scripted_dialogues_router)
 app.include_router(scripted_lines_router)
 app.include_router(gemini_router)
+app.include_router(rag_router)
 
 
 @app.get("/")

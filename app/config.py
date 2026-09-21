@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     jwt_secret_key: str = Field(..., env="JWT_SECRET_KEY")
     jwt_algorithm: str = Field("HS256", env="JWT_ALGORITHM")
     jwt_expire_minutes: int = Field(60, env="JWT_EXPIRE_MINUTES")
+    gemini_model: str = Field("gemini-2.5-flash", env="GEMINI_MODEL")
+    gemini_embed_model: str = Field("gemini-embedding-001", env="GEMINI_EMBED_MODEL")
+    gemini_embed_dim: int = Field(768, env="GEMINI_EMBED_DIM")
 
     # @property
     # def webhook_url(self) -> str:
