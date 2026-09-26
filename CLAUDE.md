@@ -25,6 +25,7 @@ The compose setup connects to an external Docker network named `sail` (Laravel S
 
 Copy `.env.example` to `.env`. Required variables:
 - `BOT_TOKEN` — Telegram bot token
+- `TELEGRAM_CHAT_ID` — chat the scheduler sends exercises to (required by `scheduler.py` only)
 - `GEMINI_API_KEY` — Google Gemini API key
 - `DATABASE_URL` — async SQLAlchemy URL (e.g. `postgresql+asyncpg://...`)
 - `JWT_SECRET_KEY`, `JWT_ALGORITHM`, `JWT_EXPIRE_MINUTES` — auth token settings
@@ -60,7 +61,7 @@ The Postgres database is owned by a separate Laravel/Sail app (see `DATABASE_URL
 
 ### Scheduler (`scheduler.py`)
 - Opens its own `AsyncSession` (via `app.database.AsyncSessionLocal`) per job/callback to query lessons and exercises
-- Sends an exercise to Telegram chat ID `304642547` every hour
+- Sends an exercise to Telegram chat `TELEGRAM_CHAT_ID` every hour
 - Handles `quiz:<exercise_id>:<option_index>` callback queries to mark exercises complete
 
 ## Key inconsistencies to be aware of

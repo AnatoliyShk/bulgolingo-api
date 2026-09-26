@@ -12,7 +12,9 @@ from app.database import AsyncSessionLocal
 
 bot = Bot(token=settings.bot_token)
 dp = Dispatcher()
-CHAT_ID = 304642547
+if settings.telegram_chat_id is None:
+    raise RuntimeError("TELEGRAM_CHAT_ID is not set; add it to .env")
+CHAT_ID = settings.telegram_chat_id
 
 
 async def send_hourly_report():

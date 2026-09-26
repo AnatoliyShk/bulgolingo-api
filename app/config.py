@@ -1,4 +1,4 @@
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     # webhook_path: str = Field(..., env="WEBHOOK_PATH")
     # webhook_secret_token: str = Field(..., env="WEBHOOK_SECRET_TOKEN")
     bot_token: str = Field(..., env="BOT_TOKEN")
+    telegram_chat_id: int | None = Field(None, env="TELEGRAM_CHAT_ID")
     gemini_api_key: str = Field(..., env="GEMINI_API_KEY")
     database_url: str = Field(..., env="DATABASE_URL")
     jwt_secret_key: str = Field(..., env="JWT_SECRET_KEY")
@@ -14,6 +15,11 @@ class Settings(BaseSettings):
     gemini_model: str = Field("gemini-2.5-flash", env="GEMINI_MODEL")
     gemini_embed_model: str = Field("gemini-embedding-001", env="GEMINI_EMBED_MODEL")
     gemini_embed_dim: int = Field(768, env="GEMINI_EMBED_DIM")
+
+    @field_validator("telegram_chat_id", mode="before")
+    @classmethod
+    def _empty_chat_id_is_unset(cls, value):
+        return None if value == "" else value
 
     # @property
     # def webhook_url(self) -> str:

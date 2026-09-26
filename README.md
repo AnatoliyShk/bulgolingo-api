@@ -168,6 +168,7 @@ both languages.
 ## Environment variables
 Copy `.env.example` to `.env` and set:
 - `BOT_TOKEN` — Telegram bot token
+- `TELEGRAM_CHAT_ID` — chat the scheduler sends exercises to (required by `scheduler.py` only)
 - `GEMINI_API_KEY` — Google Gemini API key
 - `DATABASE_URL` — async SQLAlchemy PostgreSQL URL, e.g. `postgresql+asyncpg://user:pass@host:5432/dbname`
 - `JWT_SECRET_KEY` — random secret used to sign/verify login tokens
