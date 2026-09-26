@@ -28,7 +28,7 @@ from app.rag.schemas import (
 )
 from app.scripted_dialogues.models import ScriptedDialogue
 from app.scripted_lines.models import ScriptedLine
-from services.rag_service import LexemaRagService, RetrievedLexema, lexema_rag_service
+from app.lexemas.rag_service import LexemaRagService, RetrievedLexema, lexema_rag_service
 
 SEED = 7
 

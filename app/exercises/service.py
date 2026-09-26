@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import Base
 from app.exercises.models import Exercise
 from app.lessons.models import Lesson
-from services.gemini_service import GeminiService
+from app.gemini.service import GeminiService
 
 exercise_lesson = Table(
     "exercise_lesson",

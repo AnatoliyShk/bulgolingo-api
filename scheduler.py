@@ -6,7 +6,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiogram import Bot, Dispatcher, F
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 
-from services import ExerciseService
+from app.exercises.service import ExerciseService
 from app.config import settings
 from app.database import AsyncSessionLocal
 

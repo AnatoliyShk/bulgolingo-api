@@ -28,8 +28,10 @@ Each resource is its own module under `app/`:
 - `app/gemini/` — Gemini AI proxy route and the embedding layer (`rag.py`)
 - `app/rag/` — retrieval and dialogue-tree generation routes
 
-Business logic lives in `services/` (`GeminiService` for calling Gemini, `ExerciseService` for
-generating and persisting exercises), used by `scheduler.py`. `ExerciseService` has no notion of
+Business logic lives in service modules next to the models they work on (`app/gemini/service.py` —
+`GeminiService` for calling Gemini; `app/exercises/service.py` — `ExerciseService` for generating and
+persisting exercises, used by `scheduler.py`; `app/lexemas/rag_service.py` and
+`app/scripted_dialogues/tree_service.py` for RAG and dialogue trees). `ExerciseService` has no notion of
 "completed" exercises — it picks the earliest lesson with exercises and its earliest
 fill-in-the-blank exercise every run, so the scheduler currently resends the same exercise on
 every hourly tick rather than progressing through a lesson.
