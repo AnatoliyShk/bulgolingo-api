@@ -118,7 +118,7 @@ Every endpoint requires `Authorization: Bearer <token>` except `GET /`, `GET /do
 |---|---|---|---|
 | POST | `/rag/dialogue-trees` | Yes | Generate a scripted Bulgarian dialogue tree grounded in stored lexemas |
 | GET | `/rag/lexemas` | Yes | Inspect retrieval: nearest lexemas for a query `q`, top `k` |
-| POST | `/rag/index` | Yes | Re-embed every lexema |
+| POST | `/rag/index` | Yes | Re-embed lexemas; `since=<date>` re-embeds only those changed at or after it |
 
 ## RAG dialogue trees
 `POST /rag/dialogue-trees` embeds the topic, pulls the nearest lexemas out of the database, and asks
@@ -156,7 +156,12 @@ both languages.
 - Generation runs at `temperature=0` with a fixed seed, and the result is validated to be a complete
   tree of the requested shape (one retry with the fault fed back to the model, then `502`).
 - The vector index lives in memory and is rebuilt automatically when lexemas are added or removed;
-  call `POST /rag/index` after editing existing words in place.
+  call `POST /rag/index` after editing existing words in place. `POST /rag/index?since=2026-09-01`
+  re-embeds only the lexemas created or updated at or after that moment and merges them into the
+  existing index, leaving every other vector untouched — `since` also accepts a full timestamp
+  (`2026-09-01T12:30:00Z`). The response reports `embedded`, `total` and `partial`; a dated call on a
+  cold index has nothing to merge into, so it falls back to a full rebuild and reports `partial: false`.
+  Lexemas with no `created_at`/`updated_at` cannot be placed in time and stay out of a dated refresh.
 
 ## Environment variables
 Copy `.env.example` to `.env` and set:

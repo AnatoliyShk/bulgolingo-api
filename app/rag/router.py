@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.exc import IntegrityError
@@ -38,12 +39,26 @@ async def search_lexemas(
 
 @router.post("/index", response_model=LexemaIndexOut)
 async def rebuild_index(
+    since: datetime | None = Query(
+        None,
+        description=(
+            "Re-embed only lexemas created or updated at or after this moment "
+            "(date or timestamp, e.g. 2026-09-01 or 2026-09-01T12:30:00Z). "
+            "Omit to re-embed everything."
+        ),
+    ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Re-embed every lexema. Only needed when existing words are edited —
+    """Re-embed lexemas. Only needed when existing words are edited in place —
     added and removed ones are picked up automatically."""
-    return LexemaIndexOut(indexed=await lexema_rag_service.build_index(db))
+    result = await lexema_rag_service.build_index(db, since)
+    return LexemaIndexOut(
+        embedded=result.embedded,
+        total=result.total,
+        partial=result.partial,
+        since=since,
+    )
 
 
 @router.post("/dialogue-trees", response_model=DialogueTreeOut)

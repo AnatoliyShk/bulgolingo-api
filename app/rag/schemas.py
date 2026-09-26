@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
@@ -66,4 +67,7 @@ class DialogueTreeOut(BaseModel):
 
 
 class LexemaIndexOut(BaseModel):
-    indexed: int
+    embedded: int = Field(description="Lexemas re-embedded by this call")
+    total: int = Field(description="Lexemas in the index afterwards")
+    partial: bool = Field(description="False when the whole table was re-embedded")
+    since: datetime | None = None
