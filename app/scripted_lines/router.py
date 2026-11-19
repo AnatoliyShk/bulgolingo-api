@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
@@ -7,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
 from app.auth.models import User
-from app.database import get_db
+from app.database import get_db, utcnow
 from app.scripted_dialogues.models import ScriptedDialogue
 from app.scripted_lines.models import ScriptedLine
 from app.scripted_lines.schemas import (
@@ -58,7 +57,7 @@ async def create_scripted_line(
     line = ScriptedLine(
         dialogue_pk=await _dialogue_pk_or_404(payload.dialogue_id, db),
         clause=payload.clause,
-        created_at=datetime.now(timezone.utc),
+        created_at=utcnow(),
     )
     db.add(line)
     await db.commit()
@@ -85,7 +84,7 @@ async def replace_scripted_line(
     line = await _get_line_or_404(line_id, db)
     line.dialogue_pk = await _dialogue_pk_or_404(payload.dialogue_id, db)
     line.clause = payload.clause
-    line.updated_at = datetime.now(timezone.utc)
+    line.updated_at = utcnow()
     await db.commit()
     await db.refresh(line)
     return line
@@ -104,7 +103,7 @@ async def update_scripted_line(
         line.dialogue_pk = await _dialogue_pk_or_404(changes["dialogue_id"], db)
     if "clause" in changes:
         line.clause = changes["clause"]
-    line.updated_at = datetime.now(timezone.utc)
+    line.updated_at = utcnow()
     await db.commit()
     await db.refresh(line)
     return line

@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
@@ -7,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
 from app.auth.models import User
-from app.database import get_db
+from app.database import get_db, utcnow
 from app.scripted_dialogues.models import ScriptedDialogue
 from app.scripted_dialogues.schemas import (
     ScriptedDialogueCreate,
@@ -60,7 +59,7 @@ async def create_scripted_dialogue(
     dialogue = ScriptedDialogue(
         bot_id=payload.bot_id,
         user_pk=await _user_pk_or_404(payload.user_id, db),
-        created_at=datetime.now(timezone.utc),
+        created_at=utcnow(),
     )
     db.add(dialogue)
     await db.commit()
@@ -87,7 +86,7 @@ async def replace_scripted_dialogue(
     dialogue = await _get_dialogue_or_404(dialogue_id, db)
     dialogue.bot_id = payload.bot_id
     dialogue.user_pk = await _user_pk_or_404(payload.user_id, db)
-    dialogue.updated_at = datetime.now(timezone.utc)
+    dialogue.updated_at = utcnow()
     await db.commit()
     await db.refresh(dialogue)
     return dialogue
@@ -106,7 +105,7 @@ async def update_scripted_dialogue(
         dialogue.bot_id = changes["bot_id"]
     if "user_id" in changes:
         dialogue.user_pk = await _user_pk_or_404(changes["user_id"], db)
-    dialogue.updated_at = datetime.now(timezone.utc)
+    dialogue.updated_at = utcnow()
     await db.commit()
     await db.refresh(dialogue)
     return dialogue

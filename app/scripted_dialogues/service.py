@@ -8,7 +8,6 @@ so the same request over the same vocabulary yields the same tree.
 """
 
 import json
-from datetime import datetime, timezone
 
 from google import genai
 from google.genai import errors, types
@@ -18,6 +17,7 @@ from starlette.concurrency import run_in_threadpool
 
 from app.auth.models import User
 from app.config import settings
+from app.database import utcnow
 from app.rag.schemas import (
     DialogueNode,
     DialogueReply,
@@ -239,7 +239,7 @@ class DialogueTreeService:
         `scripted_lines` has no ordering column, so each line's `clause` carries
         the node id and parent id; that is what makes the tree reconstructible.
         """
-        now = datetime.now(timezone.utc)
+        now = utcnow()
         dialogue = ScriptedDialogue(
             bot_id=request.bot_id,
             user_pk=current_user.pk,

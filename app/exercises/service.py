@@ -1,10 +1,9 @@
 import uuid
-from datetime import datetime, timezone
 
 from sqlalchemy import BigInteger, Column, Integer, Table, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import Base
+from app.database import Base, utcnow
 from app.exercises.models import Exercise
 from app.lessons.models import Lesson
 from app.gemini.service import GeminiService
@@ -57,7 +56,7 @@ class ExerciseService:
             name=f"Exercise for clause '{exercise_data['sentence']}'",
             clause=exercise_data,
             decision_type=decision_type,
-            created_at=datetime.now(timezone.utc),
+            created_at=utcnow(),
         )
         db.add(exercise)
         await db.commit()

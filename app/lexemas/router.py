@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
@@ -7,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
 from app.auth.models import User
-from app.database import get_db
+from app.database import get_db, utcnow
 from app.exercises.models import Exercise
 from app.lexemas.models import Lexema
 from app.lexemas.schemas import LexemaCreate, LexemaOut, LexemaPatch, LexemaUpdate
@@ -58,7 +57,7 @@ async def create_lexema(
     lexema = Lexema(
         word=payload.word,
         exercise_pk=await _exercise_pk_or_404(payload.exercise_id, db),
-        created_at=datetime.now(timezone.utc),
+        created_at=utcnow(),
     )
     db.add(lexema)
     await db.commit()
@@ -85,7 +84,7 @@ async def replace_lexema(
     lexema = await _get_lexema_or_404(lexema_id, db)
     lexema.word = payload.word
     lexema.exercise_pk = await _exercise_pk_or_404(payload.exercise_id, db)
-    lexema.updated_at = datetime.now(timezone.utc)
+    lexema.updated_at = utcnow()
     await db.commit()
     await db.refresh(lexema)
     return lexema
@@ -105,7 +104,7 @@ async def update_lexema(
     if "exercise_id" in changes:
         # an explicit null unlinks the exercise, matching the nullable column
         lexema.exercise_pk = await _exercise_pk_or_404(changes["exercise_id"], db)
-    lexema.updated_at = datetime.now(timezone.utc)
+    lexema.updated_at = utcnow()
     await db.commit()
     await db.refresh(lexema)
     return lexema

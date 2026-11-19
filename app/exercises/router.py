@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -7,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
 from app.auth.models import User
-from app.database import get_db
+from app.database import get_db, utcnow
 from app.exercises.models import Exercise
 from app.exercises.schemas import ExerciseCreate, ExerciseOut, ExercisePatch, ExerciseUpdate
 
@@ -41,7 +40,7 @@ async def create_exercise(
         name=payload.name,
         clause=payload.clause,
         decision_type=payload.decision_type,
-        created_at=datetime.now(timezone.utc),
+        created_at=utcnow(),
     )
     db.add(exercise)
     await db.commit()
@@ -69,7 +68,7 @@ async def replace_exercise(
     exercise.name = payload.name
     exercise.clause = payload.clause
     exercise.decision_type = payload.decision_type
-    exercise.updated_at = datetime.now(timezone.utc)
+    exercise.updated_at = utcnow()
     await db.commit()
     await db.refresh(exercise)
     return exercise
@@ -86,7 +85,7 @@ async def update_exercise(
     changes = payload.model_dump(exclude_unset=True)
     for field, value in changes.items():
         setattr(exercise, field, value)
-    exercise.updated_at = datetime.now(timezone.utc)
+    exercise.updated_at = utcnow()
     await db.commit()
     await db.refresh(exercise)
     return exercise

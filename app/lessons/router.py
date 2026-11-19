@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
@@ -7,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
 from app.auth.models import User
-from app.database import get_db
+from app.database import get_db, utcnow
 from app.lessons.models import Lesson, learning_path_lesson
 from app.lessons.schemas import LessonCreate, LessonOut, LessonPatch, LessonUpdate
 
@@ -46,7 +45,7 @@ async def create_lesson(
     lesson = Lesson(
         name=payload.name,
         description=payload.description,
-        created_at=datetime.now(timezone.utc),
+        created_at=utcnow(),
     )
     db.add(lesson)
     await db.commit()
@@ -73,7 +72,7 @@ async def replace_lesson(
     lesson = await _get_lesson_or_404(lesson_id, db)
     lesson.name = payload.name
     lesson.description = payload.description
-    lesson.updated_at = datetime.now(timezone.utc)
+    lesson.updated_at = utcnow()
     await db.commit()
     await db.refresh(lesson)
     return lesson
@@ -90,7 +89,7 @@ async def update_lesson(
     changes = payload.model_dump(exclude_unset=True)
     for field, value in changes.items():
         setattr(lesson, field, value)
-    lesson.updated_at = datetime.now(timezone.utc)
+    lesson.updated_at = utcnow()
     await db.commit()
     await db.refresh(lesson)
     return lesson
