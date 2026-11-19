@@ -180,8 +180,8 @@ Copy `.env.example` to `.env` and set:
 
 ## Running locally
 ```bash
-uvicorn main:app --reload      # FastAPI server on :8000
-python scheduler.py            # Telegram bot, separate process
+uv run uvicorn main:app --reload    # FastAPI server on :8000
+uv run python scheduler.py         # Telegram bot, separate process
 ```
 
 ## Docker

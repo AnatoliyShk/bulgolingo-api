@@ -11,8 +11,8 @@ A Bulgarian language learning app, built entirely on FastAPI, with two runtime p
 ## Running the project
 
 ```bash
-uvicorn main:app --reload           # FastAPI server on :8000
-python scheduler.py                 # Telegram bot + scheduler (separate process)
+uv run uvicorn main:app --reload    # FastAPI server on :8000
+uv run python scheduler.py          # Telegram bot + scheduler (separate process)
 ```
 
 ### Docker

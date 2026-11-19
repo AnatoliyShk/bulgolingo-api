@@ -1,0 +1,18 @@
+[project]
+name = "bulgolingopy"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "aiogram>=3.7.0",
+    "apscheduler>=3.10.0",
+    "asyncpg>=0.29.0",
+    "bcrypt>=4.1.0",
+    "fastapi>=0.111.0",
+    "google-genai>=3.6.1",
+    "numpy>=1.26",
+    "pydantic-settings>=2.2.0",
+    "pydantic[email]>=2.0.0",
+    "pyjwt>=2.8.0",
+    "sqlalchemy[asyncio]>=2.0.0",
+    "uvicorn[standard]>=0.29.0",
+]

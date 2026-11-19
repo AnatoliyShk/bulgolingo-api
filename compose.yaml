@@ -15,6 +15,9 @@ services:
   scheduler:
     build: .
     command: python3 scheduler.py
+    env_file:
+      - .env
+    restart: unless-stopped
     networks:
       - sail
 

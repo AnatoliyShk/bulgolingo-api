@@ -1,11 +1,13 @@
 FROM python:3.12-slim
+COPY --from=ghcr.io/astral-sh/uv:0.12.20 /uv /bin/uv
 
 WORKDIR /app
- 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
- 
+# venv lives outside /app so the compose bind mount (.:/app) does not hide it
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv PATH="/opt/venv/bin:$PATH"
+
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project
+
 COPY . .
- 
+
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
- 
