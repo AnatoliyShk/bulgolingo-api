@@ -45,7 +45,7 @@ Copy `.env.example` to `.env`. Required variables:
 | Scripted lines | `app/scripted_lines/` — `ScriptedLine` model + REST routes (`GET/POST /scripted-lines/`, `GET/PUT/PATCH/DELETE /scripted-lines/{id}`) |
 | Gemini AI | `app/gemini/router.py` — `POST /ask` endpoint proxying to Gemini |
 | RAG / dialogue trees | `app/rag/` — `POST /rag/dialogue-trees`, `GET /rag/lexemas`, `POST /rag/index`; embedding layer in `app/gemini/rag.py` |
-| Business logic | service modules inside the feature packages — `app/gemini/service.py` (`GeminiService`), `app/exercises/service.py` (`ExerciseService`), `app/lexemas/rag_service.py` (`LexemaRagService`), `app/scripted_dialogues/tree_service.py` (`DialogueTreeService`) |
+| Business logic | service modules inside the feature packages — `app/gemini/service.py` (`GeminiService`), `app/exercises/service.py` (`ExerciseService`), `app/lexemas/service.py` (`LexemaRagService`), `app/scripted_dialogues/service.py` (`DialogueTreeService`) |
 
 All persistence goes through SQLAlchemy async models under `app/`; there is no other ORM or data layer in this project.
 
@@ -55,8 +55,8 @@ The Postgres database is owned by a separate Laravel/Sail app (see `DATABASE_URL
 - `GeminiService` — wraps `google.genai.Client`, calls Gemini to generate Bulgarian fill-in-the-blank exercises
 - `ExerciseService` — queries `app.lessons.models.Lesson` and `app.exercises.models.Exercise` via an `AsyncSession` for incomplete lessons/exercises, calls `GeminiService.generate_exercise()`, creates `Exercise` records
 - Used by `scheduler.py` (not by the FastAPI routes directly)
-- `LexemaRagService` (`app/lexemas/rag_service.py`) — in-memory vector index over `lexemas`. There is nowhere to persist embeddings (no migrations in this repo), so it embeds every lexema on first use and rebuilds when the row count or newest `pk` changes; `POST /rag/index` forces a rebuild after words are edited in place, and `?since=<date>` re-embeds only the lexemas stamped at or after that moment, merging them into the existing index (it falls back to a full rebuild when the index is still cold, since a partial refresh would otherwise leave a half-populated index that looks complete). Module-level singleton `lexema_rag_service`.
-- `DialogueTreeService` (`app/scripted_dialogues/tree_service.py`) — retrieves lexemas for a topic, asks Gemini for a *flat* node list (structured output, `temperature=0` + fixed `seed`), validates that the result is a complete tree of the requested depth/branching, retries once with the fault fed back, then assembles the nested tree. Optionally persists it as a `ScriptedDialogue` + one `ScriptedLine` per node.
+- `LexemaRagService` (`app/lexemas/service.py`) — in-memory vector index over `lexemas`. There is nowhere to persist embeddings (no migrations in this repo), so it embeds every lexema on first use and rebuilds when the row count or newest `pk` changes; `POST /rag/index` forces a rebuild after words are edited in place, and `?since=<date>` re-embeds only the lexemas stamped at or after that moment, merging them into the existing index (it falls back to a full rebuild when the index is still cold, since a partial refresh would otherwise leave a half-populated index that looks complete). Module-level singleton `lexema_rag_service`.
+- `DialogueTreeService` (`app/scripted_dialogues/service.py`) — retrieves lexemas for a topic, asks Gemini for a *flat* node list (structured output, `temperature=0` + fixed `seed`), validates that the result is a complete tree of the requested depth/branching, retries once with the fault fed back, then assembles the nested tree. Optionally persists it as a `ScriptedDialogue` + one `ScriptedLine` per node.
 - Gemini's SDK is synchronous; async routes call it through `run_in_threadpool` rather than blocking the event loop.
 
 ### Scheduler (`scheduler.py`)

@@ -14,8 +14,8 @@ from app.rag.schemas import (
     LexemaIndexOut,
     RetrievedLexemaOut,
 )
-from app.scripted_dialogues.tree_service import DialogueTreeService, TreeGenerationError
-from app.lexemas.rag_service import lexema_rag_service
+from app.scripted_dialogues.service import DialogueTreeService, TreeGenerationError
+from app.lexemas.service import lexema_rag_service
 
 router = APIRouter(prefix="/rag", tags=["rag"])
 
