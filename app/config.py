@@ -5,7 +5,7 @@ class Settings(BaseSettings):
     # webhook_host: str = Field(..., env="WEBHOOK_HOST")
     # webhook_path: str = Field(..., env="WEBHOOK_PATH")
     # webhook_secret_token: str = Field(..., env="WEBHOOK_SECRET_TOKEN")
-    bot_token: str = Field(..., env="BOT_TOKEN")
+    bot_token: str | None = Field(None, env="BOT_TOKEN")
     telegram_chat_id: int | None = Field(None, env="TELEGRAM_CHAT_ID")
     gemini_api_key: str = Field(..., env="GEMINI_API_KEY")
     database_url: str = Field(..., env="DATABASE_URL")
@@ -16,9 +16,9 @@ class Settings(BaseSettings):
     gemini_embed_model: str = Field("gemini-embedding-001", env="GEMINI_EMBED_MODEL")
     gemini_embed_dim: int = Field(768, env="GEMINI_EMBED_DIM")
 
-    @field_validator("telegram_chat_id", mode="before")
+    @field_validator("telegram_chat_id", "bot_token", mode="before")
     @classmethod
-    def _empty_chat_id_is_unset(cls, value):
+    def _empty_is_unset(cls, value):
         return None if value == "" else value
 
     # @property

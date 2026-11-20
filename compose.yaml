@@ -17,7 +17,7 @@ services:
     command: python3 scheduler.py
     env_file:
       - .env
-    restart: unless-stopped
+    restart: on-failure
     networks:
       - sail
 

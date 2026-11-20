@@ -1,4 +1,5 @@
 import asyncio
+import sys
 import uuid
 from datetime import datetime
 
@@ -9,6 +10,11 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 from app.exercises.service import ExerciseService
 from app.config import settings
 from app.database import AsyncSessionLocal
+
+if not settings.bot_token:
+    # exit 0 so compose's `restart: on-failure` leaves the service stopped
+    print("BOT_TOKEN is not set; Telegram bot disabled.")
+    sys.exit(0)
 
 bot = Bot(token=settings.bot_token)
 dp = Dispatcher()
