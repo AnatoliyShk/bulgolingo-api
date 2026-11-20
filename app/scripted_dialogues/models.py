@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey
+from sqlalchemy import BigInteger, DateTime, ForeignKey, true
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -24,3 +24,8 @@ class ScriptedDialogue(Base):
     def user_id(self) -> uuid.UUID:
         """Public id of the owning user (the `uuid` column, not the bigint FK)."""
         return self.user.id
+
+    @classmethod
+    def visible_to(cls, user: User):
+        """WHERE clause: admins see every dialogue, everyone else only their own."""
+        return true() if user.is_admin else cls.user_pk == user.pk

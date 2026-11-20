@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import get_current_user, require_admin
 from app.auth.models import User
 from app.database import get_db, utcnow
 from app.lessons.models import Lesson, learning_path_lesson
@@ -40,7 +40,7 @@ async def list_lessons(
 async def create_lesson(
     payload: LessonCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
 ):
     lesson = Lesson(
         name=payload.name,
@@ -67,7 +67,7 @@ async def replace_lesson(
     lesson_id: uuid.UUID,
     payload: LessonUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
 ):
     lesson = await _get_lesson_or_404(lesson_id, db)
     lesson.name = payload.name
@@ -83,7 +83,7 @@ async def update_lesson(
     lesson_id: uuid.UUID,
     payload: LessonPatch,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
 ):
     lesson = await _get_lesson_or_404(lesson_id, db)
     changes = payload.model_dump(exclude_unset=True)
@@ -99,7 +99,7 @@ async def update_lesson(
 async def delete_lesson(
     lesson_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
 ):
     lesson = await _get_lesson_or_404(lesson_id, db)
     await db.delete(lesson)

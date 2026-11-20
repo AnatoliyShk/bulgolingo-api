@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import get_current_user, require_admin
 from app.auth.models import User
 from app.database import get_db, utcnow
 from app.exercises.models import Exercise
@@ -52,7 +52,7 @@ async def list_lexemas(
 async def create_lexema(
     payload: LexemaCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
 ):
     lexema = Lexema(
         word=payload.word,
@@ -79,7 +79,7 @@ async def replace_lexema(
     lexema_id: uuid.UUID,
     payload: LexemaUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
 ):
     lexema = await _get_lexema_or_404(lexema_id, db)
     lexema.word = payload.word
@@ -95,7 +95,7 @@ async def update_lexema(
     lexema_id: uuid.UUID,
     payload: LexemaPatch,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
 ):
     lexema = await _get_lexema_or_404(lexema_id, db)
     changes = payload.model_dump(exclude_unset=True)
@@ -114,7 +114,7 @@ async def update_lexema(
 async def delete_lexema(
     lexema_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
 ):
     lexema = await _get_lexema_or_404(lexema_id, db)
     await db.delete(lexema)

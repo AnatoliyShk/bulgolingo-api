@@ -36,7 +36,7 @@ Copy `.env.example` to `.env`. Required variables:
 |---|---|
 | Settings | `app/config.py` — `Settings` (pydantic-settings, reads `.env`) |
 | DB engine/session | `app/database.py` — async SQLAlchemy engine + session factory; `get_db()` dependency, `Base` declarative base |
-| Auth | `app/auth/` — `User` model, JWT login (`POST /login`), `get_current_user` dependency used to protect routes |
+| Auth | `app/auth/` — `User` model, JWT login (`POST /login`), `get_current_user` dependency used to protect routes; `require_admin` (role `admin`, `users.role_id = 2`) guards writes to lessons/exercises/lexemas and `POST /rag/index`; scripted dialogues/lines are scoped to their owner via `ScriptedDialogue.visible_to(user)` unless admin |
 | Learning paths | `app/learning_paths/` — `LearningPath` model + REST routes (`GET /learning-paths/`, `GET /learning-paths/{id}`) |
 | Lessons | `app/lessons/` — `Lesson` model + REST routes (`GET/POST /lessons/`, `GET/PUT/PATCH/DELETE /lessons/{id}`) |
 | Exercises | `app/exercises/` — `Exercise` model + REST routes (`GET/POST /exercises/`, `GET/PUT/PATCH/DELETE /exercises/{id}`) |

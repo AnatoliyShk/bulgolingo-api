@@ -19,16 +19,22 @@ from app.scripted_lines.schemas import (
 router = APIRouter(prefix="/scripted-lines", tags=["scripted-lines"])
 
 
-async def _get_line_or_404(line_id: uuid.UUID, db: AsyncSession) -> ScriptedLine:
-    result = await db.execute(select(ScriptedLine).where(ScriptedLine.id == line_id))
+def _visible_lines(user: User):
+    return select(ScriptedLine).join(ScriptedLine.dialogue).where(ScriptedDialogue.visible_to(user))
+
+
+async def _get_line_or_404(line_id: uuid.UUID, db: AsyncSession, user: User) -> ScriptedLine:
+    result = await db.execute(_visible_lines(user).where(ScriptedLine.id == line_id))
     line = result.scalar_one_or_none()
     if line is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scripted line not found")
     return line
 
 
-async def _dialogue_pk_or_404(dialogue_id: uuid.UUID, db: AsyncSession) -> int:
-    result = await db.execute(select(ScriptedDialogue.pk).where(ScriptedDialogue.id == dialogue_id))
+async def _dialogue_pk_or_404(dialogue_id: uuid.UUID, db: AsyncSession, user: User) -> int:
+    result = await db.execute(
+        select(ScriptedDialogue.pk).where(ScriptedDialogue.id == dialogue_id, ScriptedDialogue.visible_to(user))
+    )
     dialogue_pk = result.scalar_one_or_none()
     if dialogue_pk is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scripted dialogue not found")
@@ -41,9 +47,9 @@ async def list_scripted_lines(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    query = select(ScriptedLine)
+    query = _visible_lines(current_user)
     if dialogue_id is not None:
-        query = query.where(ScriptedLine.dialogue_pk == await _dialogue_pk_or_404(dialogue_id, db))
+        query = query.where(ScriptedLine.dialogue_pk == await _dialogue_pk_or_404(dialogue_id, db, current_user))
     result = await db.execute(query)
     return result.scalars().all()
 
@@ -55,7 +61,7 @@ async def create_scripted_line(
     current_user: User = Depends(get_current_user),
 ):
     line = ScriptedLine(
-        dialogue_pk=await _dialogue_pk_or_404(payload.dialogue_id, db),
+        dialogue_pk=await _dialogue_pk_or_404(payload.dialogue_id, db, current_user),
         clause=payload.clause,
         created_at=utcnow(),
     )
@@ -71,7 +77,7 @@ async def get_scripted_line(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return await _get_line_or_404(line_id, db)
+    return await _get_line_or_404(line_id, db, current_user)
 
 
 @router.put("/{line_id}", response_model=ScriptedLineOut)
@@ -81,8 +87,8 @@ async def replace_scripted_line(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    line = await _get_line_or_404(line_id, db)
-    line.dialogue_pk = await _dialogue_pk_or_404(payload.dialogue_id, db)
+    line = await _get_line_or_404(line_id, db, current_user)
+    line.dialogue_pk = await _dialogue_pk_or_404(payload.dialogue_id, db, current_user)
     line.clause = payload.clause
     line.updated_at = utcnow()
     await db.commit()
@@ -97,10 +103,10 @@ async def update_scripted_line(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    line = await _get_line_or_404(line_id, db)
+    line = await _get_line_or_404(line_id, db, current_user)
     changes = payload.model_dump(exclude_unset=True)
     if "dialogue_id" in changes:
-        line.dialogue_pk = await _dialogue_pk_or_404(changes["dialogue_id"], db)
+        line.dialogue_pk = await _dialogue_pk_or_404(changes["dialogue_id"], db, current_user)
     if "clause" in changes:
         line.clause = changes["clause"]
     line.updated_at = utcnow()
@@ -115,6 +121,6 @@ async def delete_scripted_line(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    line = await _get_line_or_404(line_id, db)
+    line = await _get_line_or_404(line_id, db, current_user)
     await db.delete(line)
     await db.commit()

@@ -6,6 +6,8 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
 
+ADMIN_ROLE_ID = 2  # `roles` row seeded by the Laravel app: 1 student, 2 admin, 3 admin_visitor
+
 
 class User(Base):
     __tablename__ = "users"
@@ -15,3 +17,8 @@ class User(Base):
     name: Mapped[str] = mapped_column(String)
     email: Mapped[str] = mapped_column(String)
     password: Mapped[str] = mapped_column(String)
+    role_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+
+    @property
+    def is_admin(self) -> bool:
+        return self.role_id == ADMIN_ROLE_ID

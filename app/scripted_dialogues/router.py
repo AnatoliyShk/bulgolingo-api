@@ -18,15 +18,19 @@ from app.scripted_dialogues.schemas import (
 router = APIRouter(prefix="/scripted-dialogues", tags=["scripted-dialogues"])
 
 
-async def _get_dialogue_or_404(dialogue_id: uuid.UUID, db: AsyncSession) -> ScriptedDialogue:
-    result = await db.execute(select(ScriptedDialogue).where(ScriptedDialogue.id == dialogue_id))
+async def _get_dialogue_or_404(dialogue_id: uuid.UUID, db: AsyncSession, user: User) -> ScriptedDialogue:
+    result = await db.execute(
+        select(ScriptedDialogue).where(ScriptedDialogue.id == dialogue_id, ScriptedDialogue.visible_to(user))
+    )
     dialogue = result.scalar_one_or_none()
     if dialogue is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scripted dialogue not found")
     return dialogue
 
 
-async def _user_pk_or_404(user_id: uuid.UUID, db: AsyncSession) -> int:
+async def _user_pk_or_404(user_id: uuid.UUID, db: AsyncSession, current_user: User) -> int:
+    if not current_user.is_admin and user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot assign a dialogue to another user")
     result = await db.execute(select(User.pk).where(User.id == user_id))
     user_pk = result.scalar_one_or_none()
     if user_pk is None:
@@ -41,11 +45,11 @@ async def list_scripted_dialogues(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    query = select(ScriptedDialogue)
+    query = select(ScriptedDialogue).where(ScriptedDialogue.visible_to(current_user))
     if bot_id is not None:
         query = query.where(ScriptedDialogue.bot_id == bot_id)
     if user_id is not None:
-        query = query.where(ScriptedDialogue.user_pk == await _user_pk_or_404(user_id, db))
+        query = query.where(ScriptedDialogue.user_pk == await _user_pk_or_404(user_id, db, current_user))
     result = await db.execute(query)
     return result.scalars().all()
 
@@ -58,7 +62,7 @@ async def create_scripted_dialogue(
 ):
     dialogue = ScriptedDialogue(
         bot_id=payload.bot_id,
-        user_pk=await _user_pk_or_404(payload.user_id, db),
+        user_pk=await _user_pk_or_404(payload.user_id, db, current_user),
         created_at=utcnow(),
     )
     db.add(dialogue)
@@ -73,7 +77,7 @@ async def get_scripted_dialogue(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return await _get_dialogue_or_404(dialogue_id, db)
+    return await _get_dialogue_or_404(dialogue_id, db, current_user)
 
 
 @router.put("/{dialogue_id}", response_model=ScriptedDialogueOut)
@@ -83,9 +87,9 @@ async def replace_scripted_dialogue(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    dialogue = await _get_dialogue_or_404(dialogue_id, db)
+    dialogue = await _get_dialogue_or_404(dialogue_id, db, current_user)
     dialogue.bot_id = payload.bot_id
-    dialogue.user_pk = await _user_pk_or_404(payload.user_id, db)
+    dialogue.user_pk = await _user_pk_or_404(payload.user_id, db, current_user)
     dialogue.updated_at = utcnow()
     await db.commit()
     await db.refresh(dialogue)
@@ -99,12 +103,12 @@ async def update_scripted_dialogue(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    dialogue = await _get_dialogue_or_404(dialogue_id, db)
+    dialogue = await _get_dialogue_or_404(dialogue_id, db, current_user)
     changes = payload.model_dump(exclude_unset=True)
     if "bot_id" in changes:
         dialogue.bot_id = changes["bot_id"]
     if "user_id" in changes:
-        dialogue.user_pk = await _user_pk_or_404(changes["user_id"], db)
+        dialogue.user_pk = await _user_pk_or_404(changes["user_id"], db, current_user)
     dialogue.updated_at = utcnow()
     await db.commit()
     await db.refresh(dialogue)
@@ -117,6 +121,6 @@ async def delete_scripted_dialogue(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    dialogue = await _get_dialogue_or_404(dialogue_id, db)
+    dialogue = await _get_dialogue_or_404(dialogue_id, db, current_user)
     await db.delete(dialogue)
     await db.commit()
