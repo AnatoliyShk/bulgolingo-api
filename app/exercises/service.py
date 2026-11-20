@@ -1,11 +1,10 @@
 import uuid
 
-from sqlalchemy import BigInteger, Column, Integer, Table, insert, select
+from sqlalchemy import BigInteger, Column, Integer, Table, func, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import Base, utcnow
 from app.exercises.models import Exercise
-from app.lessons.models import Lesson
 from app.gemini.service import GeminiService
 
 exercise_lesson = Table(
@@ -22,30 +21,16 @@ class ExerciseService:
         self.gemini_service = gemini_service
 
     @staticmethod
-    async def get_lesson_with_exercises(db: AsyncSession) -> Lesson | None:
-        result = await db.execute(
-            select(Lesson)
-            .join(exercise_lesson, exercise_lesson.c.lesson_id == Lesson.pk)
-            .order_by(Lesson.created_at)
-            .limit(1)
-        )
-        return result.scalars().first()
-
-    @staticmethod
     async def get_exercise(db: AsyncSession, exercise_id: uuid.UUID) -> Exercise | None:
         result = await db.execute(select(Exercise).where(Exercise.id == exercise_id))
         return result.scalar_one_or_none()
 
     @staticmethod
-    async def get_fill_in_the_blank_exercise(db: AsyncSession, lesson: Lesson) -> Exercise | None:
+    async def get_random_fill_in_the_blank_exercise(db: AsyncSession) -> Exercise | None:
         result = await db.execute(
             select(Exercise)
-            .join(exercise_lesson, exercise_lesson.c.exercise_id == Exercise.pk)
-            .where(
-                exercise_lesson.c.lesson_id == lesson.pk,
-                Exercise.decision_type == "fill_in_the_blank",
-            )
-            .order_by(Exercise.created_at)
+            .where(Exercise.decision_type == "fill_in_the_blank")
+            .order_by(func.random())
             .limit(1)
         )
         return result.scalars().first()

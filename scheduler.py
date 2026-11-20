@@ -19,12 +19,7 @@ CHAT_ID = settings.telegram_chat_id
 
 async def send_hourly_report():
     async with AsyncSessionLocal() as db:
-        lesson = await ExerciseService.get_lesson_with_exercises(db)
-        if not lesson:
-            await bot.send_message(CHAT_ID, "No lessons with exercises found.")
-            return
-
-        exercise = await ExerciseService.get_fill_in_the_blank_exercise(db, lesson)
+        exercise = await ExerciseService.get_random_fill_in_the_blank_exercise(db)
         if not exercise:
             await bot.send_message(CHAT_ID, "No fill-in-the-blank exercises found.")
             return
@@ -49,6 +44,9 @@ async def handle_quiz_answer(callback: CallbackQuery):
     _, exercise_id, option_index = callback.data.split(":")
     async with AsyncSessionLocal() as db:
         exercise = await ExerciseService.get_exercise(db, uuid.UUID(exercise_id))
+        if exercise is None:
+            await callback.answer("This exercise no longer exists.")
+            return
         clause = exercise.clause
 
         if int(option_index) == clause["correct_option"]:

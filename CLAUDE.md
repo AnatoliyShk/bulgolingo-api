@@ -53,7 +53,7 @@ The Postgres database is owned by a separate Laravel/Sail app (see `DATABASE_URL
 
 ### Services
 - `GeminiService` — wraps `google.genai.Client`, calls Gemini to generate Bulgarian fill-in-the-blank exercises
-- `ExerciseService` — queries `app.lessons.models.Lesson` and `app.exercises.models.Exercise` via an `AsyncSession` for incomplete lessons/exercises, calls `GeminiService.generate_exercise()`, creates `Exercise` records
+- `ExerciseService` — queries `app.lessons.models.Lesson` and `app.exercises.models.Exercise` via an `AsyncSession`: picks a random `fill_in_the_blank` exercise for the scheduler, and (unused) calls `GeminiService.generate_exercise()`, creates `Exercise` records
 - Used by `scheduler.py` (not by the FastAPI routes directly)
 - `LexemaRagService` (`app/lexemas/service.py`) — in-memory vector index over `lexemas`. There is nowhere to persist embeddings (no migrations in this repo), so it embeds every lexema on first use and rebuilds when the row count or newest `pk` changes; `POST /rag/index` forces a rebuild after words are edited in place, and `?since=<date>` re-embeds only the lexemas stamped at or after that moment, merging them into the existing index (it falls back to a full rebuild when the index is still cold, since a partial refresh would otherwise leave a half-populated index that looks complete). Module-level singleton `lexema_rag_service`.
 - `DialogueTreeService` (`app/scripted_dialogues/service.py`) — retrieves lexemas for a topic, asks Gemini for a *flat* node list (structured output, `temperature=0` + fixed `seed`), validates that the result is a complete tree of the requested depth/branching, retries once with the fault fed back, then assembles the nested tree. Optionally persists it as a `ScriptedDialogue` + one `ScriptedLine` per node.
@@ -61,8 +61,8 @@ The Postgres database is owned by a separate Laravel/Sail app (see `DATABASE_URL
 
 ### Scheduler (`scheduler.py`)
 - Opens its own `AsyncSession` (via `app.database.AsyncSessionLocal`) per job/callback to query lessons and exercises
-- Sends an exercise to Telegram chat `TELEGRAM_CHAT_ID` every hour
-- Handles `quiz:<exercise_id>:<option_index>` callback queries to mark exercises complete
+- Sends a random fill-in-the-blank exercise to Telegram chat `TELEGRAM_CHAT_ID` every hour (the chat is not a user, so nothing is recorded in `user_exercise_completions`)
+- Handles `quiz:<exercise_id>:<option_index>` callback queries by replying "Correct" or the explanation; nothing is stored
 
 ## Key inconsistencies to be aware of
 
