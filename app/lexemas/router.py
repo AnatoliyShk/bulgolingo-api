@@ -8,7 +8,7 @@ from app.auth.dependencies import get_current_user, require_admin
 from app.auth.models import User
 from app.database import get_db, utcnow
 from app.exercises.models import Exercise
-from app.lexemas.models import Lexema
+from app.lexemas.models import Lexema, exercise_lexema
 from app.lexemas.schemas import LexemaCreate, LexemaOut, LexemaPatch, LexemaUpdate
 
 router = APIRouter(prefix="/lexemas", tags=["lexemas"])
@@ -22,9 +22,7 @@ async def _get_lexema_or_404(lexema_id: uuid.UUID, db: AsyncSession) -> Lexema:
     return lexema
 
 
-async def _exercise_pk_or_404(exercise_id: uuid.UUID | None, db: AsyncSession) -> int | None:
-    if exercise_id is None:
-        return None
+async def _exercise_pk_or_404(exercise_id: uuid.UUID, db: AsyncSession) -> int:
     result = await db.execute(select(Exercise.pk).where(Exercise.id == exercise_id))
     exercise_pk = result.scalar_one_or_none()
     if exercise_pk is None:
@@ -43,7 +41,9 @@ async def list_lexemas(
     if word is not None:
         query = query.where(Lexema.word == word)
     if exercise_id is not None:
-        query = query.where(Lexema.exercise_pk == await _exercise_pk_or_404(exercise_id, db))
+        query = query.join(exercise_lexema, exercise_lexema.c.lexema_id == Lexema.pk).where(
+            exercise_lexema.c.exercise_id == await _exercise_pk_or_404(exercise_id, db)
+        )
     result = await db.execute(query)
     return result.scalars().all()
 
@@ -56,7 +56,6 @@ async def create_lexema(
 ):
     lexema = Lexema(
         word=payload.word,
-        exercise_pk=await _exercise_pk_or_404(payload.exercise_id, db),
         created_at=utcnow(),
     )
     db.add(lexema)
@@ -83,7 +82,6 @@ async def replace_lexema(
 ):
     lexema = await _get_lexema_or_404(lexema_id, db)
     lexema.word = payload.word
-    lexema.exercise_pk = await _exercise_pk_or_404(payload.exercise_id, db)
     lexema.updated_at = utcnow()
     await db.commit()
     await db.refresh(lexema)
@@ -101,9 +99,6 @@ async def update_lexema(
     changes = payload.model_dump(exclude_unset=True)
     if "word" in changes:
         lexema.word = changes["word"]
-    if "exercise_id" in changes:
-        # an explicit null unlinks the exercise, matching the nullable column
-        lexema.exercise_pk = await _exercise_pk_or_404(changes["exercise_id"], db)
     lexema.updated_at = utcnow()
     await db.commit()
     await db.refresh(lexema)

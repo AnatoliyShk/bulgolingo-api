@@ -9,21 +9,17 @@ class LexemaOut(BaseModel):
 
     id: UUID
     word: str
-    exercise_id: UUID | None
     created_at: datetime | None
     updated_at: datetime | None
 
 
 class LexemaCreate(BaseModel):
     word: str
-    exercise_id: UUID | None = None
 
 
 class LexemaUpdate(BaseModel):
     word: str
-    exercise_id: UUID | None = None
 
 
 class LexemaPatch(BaseModel):
     word: str | None = None
-    exercise_id: UUID | None = None
