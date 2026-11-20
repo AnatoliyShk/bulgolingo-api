@@ -1,16 +1,16 @@
 import json
 
-from google import genai
 from google.genai import types
 
 from app.config import settings
+from app.gemini.rag import client
 
 
 class GeminiService:
 
     def __init__(self):
-        self.client = genai.Client(api_key=settings.gemini_api_key)
-        self.model = "gemini-2.5-flash"
+        self.client = client
+        self.model = settings.gemini_model
 
     def generate_exercise(self) -> dict:
         response = self.client.models.generate_content(

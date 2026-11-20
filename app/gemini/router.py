@@ -1,20 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException
-from google import genai
 from google.genai import errors
 from pydantic import BaseModel
 
 from app.auth.dependencies import get_current_user
 from app.auth.models import User
 from app.config import settings
+from app.gemini.rag import client
 
 router = APIRouter(tags=["gemini"])
-
-client = genai.Client(api_key=settings.gemini_api_key)
 
 
 class Query(BaseModel):
     prompt: str
-    model: str = "gemini-2.5-flash"
+    model: str = settings.gemini_model
 
 
 class Answer(BaseModel):

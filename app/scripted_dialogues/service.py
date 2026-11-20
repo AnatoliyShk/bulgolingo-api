@@ -9,7 +9,6 @@ so the same request over the same vocabulary yields the same tree.
 
 import json
 
-from google import genai
 from google.genai import errors, types
 from pydantic import BaseModel, ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,6 +17,7 @@ from starlette.concurrency import run_in_threadpool
 from app.auth.models import User
 from app.config import settings
 from app.database import utcnow
+from app.gemini.rag import client
 from app.rag.schemas import (
     DialogueNode,
     DialogueReply,
@@ -62,7 +62,7 @@ class _GeneratedTree(BaseModel):
 class DialogueTreeService:
     def __init__(self, rag_service: LexemaRagService = lexema_rag_service) -> None:
         self.rag_service = rag_service
-        self.client = genai.Client(api_key=settings.gemini_api_key)
+        self.client = client
         self.model = settings.gemini_model
 
     async def generate(
