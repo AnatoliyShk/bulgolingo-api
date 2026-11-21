@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import BigInteger, Boolean, Column, DateTime, String, Table
+from sqlalchemy import BigInteger, Column, DateTime, String, Table
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -23,5 +23,12 @@ learning_path_lesson = Table(
     Base.metadata,
     Column("learning_path_id", BigInteger),
     Column("lesson_id", BigInteger),
-    Column("is_completed", Boolean),
+)
+
+# One row per exercise a user has finished (bigint pks). Lesson completion is derived from it, as in Laravel.
+user_exercise_completions = Table(
+    "user_exercise_completions",
+    Base.metadata,
+    Column("user_id", BigInteger),
+    Column("exercise_id", BigInteger),
 )

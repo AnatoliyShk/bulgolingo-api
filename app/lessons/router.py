@@ -1,13 +1,14 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_admin
 from app.auth.models import User
 from app.database import get_db, utcnow
-from app.lessons.models import Lesson, learning_path_lesson
+from app.exercises.service import exercise_lesson
+from app.lessons.models import Lesson, user_exercise_completions
 from app.lessons.schemas import LessonCreate, LessonOut, LessonPatch, LessonUpdate
 
 router = APIRouter(prefix="/lessons", tags=["lessons"])
@@ -29,9 +30,20 @@ async def list_lessons(
 ):
     query = select(Lesson)
     if is_completed is not None:
-        query = query.join(
-            learning_path_lesson, learning_path_lesson.c.lesson_id == Lesson.pk
-        ).where(learning_path_lesson.c.is_completed == is_completed)
+        # Laravel's rule (ProgressService::isComplete): done when the lesson has exercises
+        # and the current user has completed every one of them
+        completed = (
+            select(exercise_lesson.c.lesson_id)
+            .outerjoin(
+                user_exercise_completions,
+                (user_exercise_completions.c.exercise_id == exercise_lesson.c.exercise_id)
+                & (user_exercise_completions.c.user_id == current_user.pk),
+            )
+            .group_by(exercise_lesson.c.lesson_id)
+            .having(func.count(exercise_lesson.c.exercise_id) > 0)
+            .having(func.count(user_exercise_completions.c.exercise_id) == func.count(exercise_lesson.c.exercise_id))
+        )
+        query = query.where(Lesson.pk.in_(completed) if is_completed else Lesson.pk.not_in(completed))
     result = await db.execute(query)
     return result.scalars().all()
 
