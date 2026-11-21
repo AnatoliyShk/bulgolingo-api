@@ -121,7 +121,11 @@ class LexemaRagService:
             documents = [rag.lexema_document(lexema.word, clauses.get(lexema.pk)) for lexema in lexemas]
             vectors = await run_in_threadpool(rag.embed_documents, documents) if documents else []
 
-            if not partial:
+            if partial:
+                # drop words deleted since the last build, or they linger once the fingerprint matches
+                existing = set((await db.execute(select(Lexema.pk))).scalars())
+                self._entries = {pk: entry for pk, entry in self._entries.items() if pk in existing}
+            else:
                 self._entries = {}
             for lexema, document, vector in zip(lexemas, documents, vectors):
                 self._entries[lexema.pk] = _IndexEntry(

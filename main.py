@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
     # print("Webhook removed, bot session closed.")
     yield
 
-app = FastAPI(title="Bot API", version="0.7.9", lifespan=lifespan)
+app = FastAPI(title="Bot API", version="0.7.10", lifespan=lifespan)
 
 app.include_router(auth_router)
 app.include_router(learning_paths_router)
