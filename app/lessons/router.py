@@ -86,7 +86,7 @@ async def update_lesson(
     current_user: User = Depends(require_admin),
 ):
     lesson = await _get_lesson_or_404(lesson_id, db)
-    changes = payload.model_dump(exclude_unset=True)
+    changes = payload.model_dump(exclude_unset=True, exclude_none=True)
     for field, value in changes.items():
         setattr(lesson, field, value)
     lesson.updated_at = utcnow()

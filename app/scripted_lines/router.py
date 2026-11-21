@@ -104,7 +104,7 @@ async def update_scripted_line(
     current_user: User = Depends(get_current_user),
 ):
     line = await _get_line_or_404(line_id, db, current_user)
-    changes = payload.model_dump(exclude_unset=True)
+    changes = payload.model_dump(exclude_unset=True, exclude_none=True)
     if "dialogue_id" in changes:
         line.dialogue_pk = await _dialogue_pk_or_404(changes["dialogue_id"], db, current_user)
     if "clause" in changes:

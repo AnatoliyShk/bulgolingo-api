@@ -96,7 +96,7 @@ async def update_lexema(
     current_user: User = Depends(require_admin),
 ):
     lexema = await _get_lexema_or_404(lexema_id, db)
-    changes = payload.model_dump(exclude_unset=True)
+    changes = payload.model_dump(exclude_unset=True, exclude_none=True)
     if "word" in changes:
         lexema.word = changes["word"]
     lexema.updated_at = utcnow()

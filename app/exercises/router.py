@@ -82,7 +82,7 @@ async def update_exercise(
     current_user: User = Depends(require_admin),
 ):
     exercise = await _get_exercise_or_404(exercise_id, db)
-    changes = payload.model_dump(exclude_unset=True)
+    changes = payload.model_dump(exclude_unset=True, exclude_none=True)
     for field, value in changes.items():
         setattr(exercise, field, value)
     exercise.updated_at = utcnow()

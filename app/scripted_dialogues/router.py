@@ -104,7 +104,7 @@ async def update_scripted_dialogue(
     current_user: User = Depends(get_current_user),
 ):
     dialogue = await _get_dialogue_or_404(dialogue_id, db, current_user)
-    changes = payload.model_dump(exclude_unset=True)
+    changes = payload.model_dump(exclude_unset=True, exclude_none=True)
     if "bot_id" in changes:
         dialogue.bot_id = changes["bot_id"]
     if "user_id" in changes:
