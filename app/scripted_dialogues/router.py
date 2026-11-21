@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import get_current_user
 from app.auth.models import User
 from app.database import get_db, utcnow
-from app.scripted_dialogues.models import ScriptedDialogue
+from app.scripted_dialogues.models import ScriptedDialogue, bots
 from app.scripted_dialogues.schemas import (
     ScriptedDialogueCreate,
     ScriptedDialogueOut,
@@ -38,6 +38,11 @@ async def _user_pk_or_404(user_id: uuid.UUID, db: AsyncSession, current_user: Us
     return user_pk
 
 
+async def check_bot_exists(bot_id: int, db: AsyncSession) -> None:
+    if await db.scalar(select(bots.c.id).where(bots.c.id == bot_id)) is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Unknown bot_id {bot_id}")
+
+
 @router.get("/", response_model=list[ScriptedDialogueOut])
 async def list_scripted_dialogues(
     bot_id: int | None = Query(None),
@@ -60,6 +65,7 @@ async def create_scripted_dialogue(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    await check_bot_exists(payload.bot_id, db)
     dialogue = ScriptedDialogue(
         bot_id=payload.bot_id,
         user_pk=await _user_pk_or_404(payload.user_id, db, current_user),
@@ -88,6 +94,7 @@ async def replace_scripted_dialogue(
     current_user: User = Depends(get_current_user),
 ):
     dialogue = await _get_dialogue_or_404(dialogue_id, db, current_user)
+    await check_bot_exists(payload.bot_id, db)
     dialogue.bot_id = payload.bot_id
     dialogue.user_pk = await _user_pk_or_404(payload.user_id, db, current_user)
     dialogue.updated_at = utcnow()
@@ -106,6 +113,7 @@ async def update_scripted_dialogue(
     dialogue = await _get_dialogue_or_404(dialogue_id, db, current_user)
     changes = payload.model_dump(exclude_unset=True, exclude_none=True)
     if "bot_id" in changes:
+        await check_bot_exists(changes["bot_id"], db)
         dialogue.bot_id = changes["bot_id"]
     if "user_id" in changes:
         dialogue.user_pk = await _user_pk_or_404(changes["user_id"], db, current_user)

@@ -14,6 +14,7 @@ from app.rag.schemas import (
     LexemaIndexOut,
     RetrievedLexemaOut,
 )
+from app.scripted_dialogues.router import check_bot_exists
 from app.scripted_dialogues.service import DialogueTreeService, TreeGenerationError
 from app.lexemas.service import lexema_rag_service
 
@@ -68,6 +69,8 @@ async def generate_dialogue_tree(
     current_user: User = Depends(get_current_user),
 ):
     """Generate a fully scripted Bulgarian dialogue tree grounded in stored lexemas."""
+    if request.bot_id is not None:
+        await check_bot_exists(request.bot_id, db)  # before paying for Gemini
     try:
         return await dialogue_tree_service.generate(db, request, current_user)
     except IntegrityError:

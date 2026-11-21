@@ -1,11 +1,14 @@
 import uuid
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, true
+from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Table, true
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.auth.models import User
 from app.database import Base
+
+# Laravel's bots table (scripted_dialogues.bot_id references bots.id); only the id is read here.
+bots = Table("bots", Base.metadata, Column("id", BigInteger))
 
 
 class ScriptedDialogue(Base):
