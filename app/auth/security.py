@@ -8,7 +8,8 @@ from app.config import settings
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
+    # bcrypt 5 raises past 72 bytes; PHP (Laravel) silently truncates there, so match it
+    return bcrypt.checkpw(plain_password.encode("utf-8")[:72], hashed_password.encode("utf-8"))
 
 
 def create_access_token(user_id: uuid.UUID) -> str:
