@@ -171,7 +171,7 @@ Copy `.env.example` to `.env` and set:
 - `TELEGRAM_CHAT_ID` — chat the scheduler sends exercises to (required by `scheduler.py` only)
 - `GEMINI_API_KEY` — Google Gemini API key
 - `DATABASE_URL` — async SQLAlchemy PostgreSQL URL, e.g. `postgresql+asyncpg://user:pass@host:5432/dbname`
-- `JWT_SECRET_KEY` — random secret used to sign/verify login tokens
+- `JWT_SECRET_KEY` — random secret used to sign/verify login tokens, at least 32 characters (`openssl rand -hex 32`); the app refuses to start otherwise
 - `JWT_ALGORITHM` — signing algorithm (default `HS256`)
 - `JWT_EXPIRE_MINUTES` — token lifetime in minutes (default `60`)
 - `GEMINI_MODEL` — generation model (default `gemini-2.5-flash`)

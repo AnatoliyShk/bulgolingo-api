@@ -9,7 +9,8 @@ class Settings(BaseSettings):
     telegram_chat_id: int | None = Field(None, env="TELEGRAM_CHAT_ID")
     gemini_api_key: str = Field(..., env="GEMINI_API_KEY")
     database_url: str = Field(..., env="DATABASE_URL")
-    jwt_secret_key: str = Field(..., env="JWT_SECRET_KEY")
+    # an empty or short HMAC secret lets anyone forge tokens; generate with `openssl rand -hex 32`
+    jwt_secret_key: str = Field(..., min_length=32, env="JWT_SECRET_KEY")
     jwt_algorithm: str = Field("HS256", env="JWT_ALGORITHM")
     jwt_expire_minutes: int = Field(60, env="JWT_EXPIRE_MINUTES")
     gemini_model: str = Field("gemini-2.5-flash", env="GEMINI_MODEL")
