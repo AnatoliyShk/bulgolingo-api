@@ -6,6 +6,10 @@ import jwt
 
 from app.config import settings
 
+# checked against when the email is unknown, so a miss costs as long as a wrong password
+# (cost 12 matches Laravel's default BCRYPT_ROUNDS)
+DUMMY_HASH = bcrypt.hashpw(b"dummy", bcrypt.gensalt(12)).decode()
+
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     # bcrypt 5 raises past 72 bytes; PHP (Laravel) silently truncates there, so match it
