@@ -85,9 +85,11 @@ class LexemaRagService:
         fingerprint = await self._current_fingerprint(db)
         if self._fingerprint == fingerprint:
             return self.size
-        return (await self.build_index(db)).total
+        return (await self.build_index(db, only_if_stale=True)).total
 
-    async def build_index(self, db: AsyncSession, since: datetime | None = None) -> IndexResult:
+    async def build_index(
+        self, db: AsyncSession, since: datetime | None = None, only_if_stale: bool = False
+    ) -> IndexResult:
         """Embed the lexemas and (re)build the index.
 
         With `since`, only lexemas touched at or after that moment are re-embedded
@@ -96,8 +98,11 @@ class LexemaRagService:
         back to a full rebuild when the index has not been built yet.
         """
         async with self._lock:
-            partial = since is not None and self.is_built
             fingerprint = await self._current_fingerprint(db)
+            # re-checked under the lock: a request that waited here may find the index already rebuilt
+            if only_if_stale and self._fingerprint == fingerprint:
+                return IndexResult(embedded=0, total=self.size, partial=False)
+            partial = since is not None and self.is_built
 
             query = select(Lexema).order_by(Lexema.pk)
             if partial:
