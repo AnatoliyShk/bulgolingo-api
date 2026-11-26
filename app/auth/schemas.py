@@ -1,8 +1,8 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str  # not EmailStr: it lowercases domains and rejects .local/.test emails Laravel accepted
     password: str
 
 
