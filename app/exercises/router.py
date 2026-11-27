@@ -1,36 +1,18 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.exceptions import RequestValidationError
-from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_admin
 from app.auth.models import User
-from app.database import get_db, utcnow
+from app.database import get_db
 from app.exercises.models import Exercise
-from app.exercises.schemas import (
-    ExerciseCreate,
-    ExerciseOut,
-    ExercisePatch,
-    ExerciseUpdate,
-    FillInTheBlankClause,
-)
+from app.exercises.schemas import ExerciseOut
 
+# Read and delete only: Laravel owns exercise content (prompt, explanation, option and word-pair rows)
+# and validates it on save, so writes go through the Laravel app.
 router = APIRouter(prefix="/exercises", tags=["exercises"])
-
-
-def _check_clause(exercise: Exercise) -> None:
-    """422 unless the final clause fits its type; run after a PATCH merges, so partial edits are checked whole."""
-    if exercise.decision_type != "fill_in_the_blank":
-        return
-    try:
-        FillInTheBlankClause.model_validate(exercise.clause)
-    except ValidationError as exc:
-        raise RequestValidationError(
-            [{**error, "loc": ("body", "clause", *error["loc"])} for error in exc.errors(include_url=False)]
-        )
 
 
 async def _get_exercise_or_404(exercise_id: uuid.UUID, db: AsyncSession) -> Exercise:
@@ -50,25 +32,6 @@ async def list_exercises(
     return result.scalars().all()
 
 
-@router.post("/", response_model=ExerciseOut, status_code=status.HTTP_201_CREATED)
-async def create_exercise(
-    payload: ExerciseCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin),
-):
-    exercise = Exercise(
-        name=payload.name,
-        clause=payload.clause,
-        decision_type=payload.decision_type,
-        created_at=utcnow(),
-    )
-    _check_clause(exercise)
-    db.add(exercise)
-    await db.commit()
-    await db.refresh(exercise)
-    return exercise
-
-
 @router.get("/{exercise_id}", response_model=ExerciseOut)
 async def get_exercise(
     exercise_id: uuid.UUID,
@@ -76,42 +39,6 @@ async def get_exercise(
     current_user: User = Depends(get_current_user),
 ):
     return await _get_exercise_or_404(exercise_id, db)
-
-
-@router.put("/{exercise_id}", response_model=ExerciseOut)
-async def replace_exercise(
-    exercise_id: uuid.UUID,
-    payload: ExerciseUpdate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin),
-):
-    exercise = await _get_exercise_or_404(exercise_id, db)
-    exercise.name = payload.name
-    exercise.clause = payload.clause
-    exercise.decision_type = payload.decision_type
-    _check_clause(exercise)
-    exercise.updated_at = utcnow()
-    await db.commit()
-    await db.refresh(exercise)
-    return exercise
-
-
-@router.patch("/{exercise_id}", response_model=ExerciseOut)
-async def update_exercise(
-    exercise_id: uuid.UUID,
-    payload: ExercisePatch,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin),
-):
-    exercise = await _get_exercise_or_404(exercise_id, db)
-    changes = payload.model_dump(exclude_unset=True, exclude_none=True)
-    for field, value in changes.items():
-        setattr(exercise, field, value)
-    _check_clause(exercise)
-    exercise.updated_at = utcnow()
-    await db.commit()
-    await db.refresh(exercise)
-    return exercise
 
 
 @router.delete("/{exercise_id}", status_code=status.HTTP_204_NO_CONTENT)

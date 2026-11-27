@@ -28,13 +28,15 @@ Each resource is its own module under `app/`:
 - `app/gemini/` — Gemini AI proxy route and the embedding layer (`rag.py`)
 - `app/rag/` — retrieval and dialogue-tree generation routes
 
-Business logic lives in service modules next to the models they work on (`app/gemini/service.py` —
-`GeminiService` for calling Gemini; `app/exercises/service.py` — `ExerciseService` for generating and
-persisting exercises, used by `scheduler.py`; `app/lexemas/service.py` and
-`app/scripted_dialogues/service.py` for RAG and dialogue trees). `ExerciseService` has no notion of
-"completed" exercises — it picks the earliest lesson with exercises and its earliest
-fill-in-the-blank exercise every run, so the scheduler currently resends the same exercise on
-every hourly tick rather than progressing through a lesson.
+Business logic lives in service modules next to the models they work on (`app/exercises/service.py` —
+`ExerciseService`, which picks a random fill-in-the-blank exercise for `scheduler.py`;
+`app/lexemas/service.py` and `app/scripted_dialogues/service.py` for RAG and dialogue trees).
+
+Exercises are read-only here apart from DELETE: the Laravel app owns their content and stores it as
+columns and rows (`prompt`, `explanation`, `exercise_options`, `exercise_word_pairs`), not in the
+legacy `exercises.clause` JSON column, which Laravel no longer reads or writes. `Exercise.clause` is
+assembled from those columns the way Laravel's `storedClause()` does, so create and edit exercises in
+the Laravel app.
 
 The connected PostgreSQL database is the same one used by the companion Laravel app (`bulgolingo`) —
 this API reads/writes the shared production schema (`learning_paths`, `lessons`, `exercises`, `users`, etc.),
@@ -74,10 +76,7 @@ Every endpoint requires `Authorization: Bearer <token>` except `GET /`, `GET /do
 | Method | Route | Auth | Notes |
 |---|---|---|---|
 | GET | `/exercises/` | Yes | List exercises |
-| POST | `/exercises/` | Yes | Create an exercise |
 | GET | `/exercises/{id}` | Yes | Get one exercise |
-| PUT | `/exercises/{id}` | Yes | Replace an exercise |
-| PATCH | `/exercises/{id}` | Yes | Partially update an exercise |
 | DELETE | `/exercises/{id}` | Yes | Delete an exercise |
 
 ### `app/lexemas`

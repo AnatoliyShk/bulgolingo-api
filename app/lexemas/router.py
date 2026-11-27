@@ -2,13 +2,14 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_admin
 from app.auth.models import User
 from app.database import get_db, utcnow
 from app.exercises.models import Exercise
-from app.lexemas.models import Lexema, exercise_lexema
+from app.lexemas.models import WORD_UNIQUE_CONSTRAINT, Lexema, exercise_lexema
 from app.lexemas.schemas import LexemaCreate, LexemaOut, LexemaPatch, LexemaUpdate
 
 router = APIRouter(prefix="/lexemas", tags=["lexemas"])
@@ -20,6 +21,17 @@ async def _get_lexema_or_404(lexema_id: uuid.UUID, db: AsyncSession) -> Lexema:
     if lexema is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lexema not found")
     return lexema
+
+
+async def _commit_or_409(db: AsyncSession, word: str) -> None:
+    """Commit, turning Laravel's unique (language_id, word) index into a 409 instead of a 500."""
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        if WORD_UNIQUE_CONSTRAINT not in str(exc.orig):
+            raise
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Lexema {word!r} already exists")
 
 
 async def _exercise_pk_or_404(exercise_id: uuid.UUID, db: AsyncSession) -> int:
@@ -59,7 +71,7 @@ async def create_lexema(
         created_at=utcnow(),
     )
     db.add(lexema)
-    await db.commit()
+    await _commit_or_409(db, lexema.word)
     await db.refresh(lexema)
     return lexema
 
@@ -83,7 +95,7 @@ async def replace_lexema(
     lexema = await _get_lexema_or_404(lexema_id, db)
     lexema.word = payload.word
     lexema.updated_at = utcnow()
-    await db.commit()
+    await _commit_or_409(db, lexema.word)
     await db.refresh(lexema)
     return lexema
 
@@ -100,7 +112,7 @@ async def update_lexema(
     if "word" in changes:
         lexema.word = changes["word"]
     lexema.updated_at = utcnow()
-    await db.commit()
+    await _commit_or_409(db, lexema.word)
     await db.refresh(lexema)
     return lexema
 

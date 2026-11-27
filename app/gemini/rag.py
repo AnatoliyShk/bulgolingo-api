@@ -47,20 +47,17 @@ def embed_query(text: str) -> list[float]:
     return embed([text], "RETRIEVAL_QUERY")[0]
 
 
-def lexema_document(word: str, exercise_clause: dict | None = None) -> str:
+def lexema_document(word: str, sentence: str | None = None, explanation: str | None = None) -> str:
     """The text indexed for one lexema.
 
     The `lexemas` table only carries the word itself, so the linked exercise's
-    clause (when there is one) is folded in to give the vector some context to
-    work with.
+    sentence and explanation (when there is one) are folded in to give the
+    vector some context to work with.
     """
     document = f"Лексема: {word}"
-    if exercise_clause:
-        sentence = exercise_clause.get("sentence")
-        explanation = exercise_clause.get("explanation")
-        context = " ".join(str(part) for part in (sentence, explanation) if part)
-        if context:
-            document = f"{document}. Контекст: {context}"
+    context = " ".join(part for part in (sentence, explanation) if part)
+    if context:
+        document = f"{document}. Контекст: {context}"
     return document
 
 

@@ -11,7 +11,8 @@ router = APIRouter(tags=["gemini"])
 
 
 class Query(BaseModel):
-    prompt: str = Field(min_length=1)
+    # any logged-in user can call this on our Gemini key, so cap what one request can cost
+    prompt: str = Field(min_length=1, max_length=4000)
 
 
 class Answer(BaseModel):

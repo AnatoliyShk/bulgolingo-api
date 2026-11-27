@@ -111,19 +111,20 @@ class LexemaRagService:
                 )
             lexemas = (await db.execute(query)).scalars().all()
 
-            # context for each word: the clause of its oldest linked exercise, if any
-            clauses = dict(
-                (
+            # context for each word: the sentence and explanation of its oldest linked exercise, if any
+            contexts = {
+                lexema_pk: (prompt, explanation)
+                for lexema_pk, prompt, explanation in (
                     await db.execute(
-                        select(exercise_lexema.c.lexema_id, Exercise.clause)
+                        select(exercise_lexema.c.lexema_id, Exercise.prompt, Exercise.explanation)
                         .join(Exercise, Exercise.pk == exercise_lexema.c.exercise_id)
                         .where(exercise_lexema.c.lexema_id.in_([lexema.pk for lexema in lexemas]))
                         .distinct(exercise_lexema.c.lexema_id)
                         .order_by(exercise_lexema.c.lexema_id, Exercise.pk)
                     )
                 ).all()
-            )
-            documents = [rag.lexema_document(lexema.word, clauses.get(lexema.pk)) for lexema in lexemas]
+            }
+            documents = [rag.lexema_document(lexema.word, *contexts.get(lexema.pk, ())) for lexema in lexemas]
             vectors = await run_in_threadpool(rag.embed_documents, documents) if documents else []
 
             if partial:
