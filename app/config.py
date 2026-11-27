@@ -2,9 +2,6 @@ from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
-    # webhook_host: str = Field(..., env="WEBHOOK_HOST")
-    # webhook_path: str = Field(..., env="WEBHOOK_PATH")
-    # webhook_secret_token: str = Field(..., env="WEBHOOK_SECRET_TOKEN")
     bot_token: str | None = Field(None, env="BOT_TOKEN")
     telegram_chat_id: int | None = Field(None, env="TELEGRAM_CHAT_ID")
     gemini_api_key: str = Field(..., env="GEMINI_API_KEY")
@@ -21,10 +18,6 @@ class Settings(BaseSettings):
     @classmethod
     def _empty_is_unset(cls, value):
         return None if value == "" else value
-
-    # @property
-    # def webhook_url(self) -> str:
-    #     return f"{self.webhook_host}{self.webhook_path}"
 
     model_config = SettingsConfigDict(
         env_file=".env",

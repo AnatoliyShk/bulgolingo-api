@@ -118,7 +118,8 @@ class LexemaRagService:
                     await db.execute(
                         select(exercise_lexema.c.lexema_id, Exercise.prompt, Exercise.explanation)
                         .join(Exercise, Exercise.pk == exercise_lexema.c.exercise_id)
-                        .where(exercise_lexema.c.lexema_id.in_([lexema.pk for lexema in lexemas]))
+                        # a subquery, not a list of pks: Postgres caps a statement at 32,767 parameters
+                        .where(exercise_lexema.c.lexema_id.in_(query.with_only_columns(Lexema.pk).order_by(None)))
                         .distinct(exercise_lexema.c.lexema_id)
                         .order_by(exercise_lexema.c.lexema_id, Exercise.pk)
                     )

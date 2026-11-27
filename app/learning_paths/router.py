@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
 from app.auth.models import User
-from app.database import get_db
+from app.database import Page, get_db
 from app.learning_paths.models import LearningPath
 from app.learning_paths.schemas import LearningPathOut
 
@@ -18,11 +18,12 @@ async def list_learning_paths(
     level: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    page: Page = Depends(),
 ):
     query = select(LearningPath)
     if level is not None:
         query = query.where(LearningPath.level == level)
-    result = await db.execute(query)
+    result = await db.execute(page.apply(query, LearningPath.pk))
     return result.scalars().all()
 
 

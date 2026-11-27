@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_admin
 from app.auth.models import User
-from app.database import get_db
+from app.database import Page, get_db
 from app.exercises.models import Exercise
 from app.exercises.schemas import ExerciseOut
 
@@ -27,8 +27,9 @@ async def _get_exercise_or_404(exercise_id: uuid.UUID, db: AsyncSession) -> Exer
 async def list_exercises(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    page: Page = Depends(),
 ):
-    result = await db.execute(select(Exercise))
+    result = await db.execute(page.apply(select(Exercise), Exercise.pk))
     return result.scalars().all()
 
 

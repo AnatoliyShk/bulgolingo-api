@@ -1,5 +1,8 @@
+from dataclasses import dataclass
 from datetime import datetime, timezone
 
+from fastapi import Query
+from sqlalchemy import Select
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 
@@ -21,6 +24,18 @@ class Base(DeclarativeBase):
 async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
+
+
+@dataclass
+class Page:
+    """`?limit=&offset=` for list routes; use as `page: Page = Depends()`."""
+
+    limit: int = Query(100, ge=1, le=500)
+    offset: int = Query(0, ge=0)
+
+    def apply(self, query: Select, order_by) -> Select:
+        # without a fixed order Postgres may return rows differently per page, skipping or repeating some
+        return query.order_by(order_by).limit(self.limit).offset(self.offset)
  
 
 def utcnow() -> datetime:

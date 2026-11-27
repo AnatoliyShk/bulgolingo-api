@@ -1,18 +1,9 @@
 import uuid
 
-from sqlalchemy import BigInteger, Column, Integer, Table, func, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import Base
 from app.exercises.models import Exercise
-
-exercise_lesson = Table(
-    "exercise_lesson",
-    Base.metadata,
-    Column("lesson_id", BigInteger),
-    Column("exercise_id", BigInteger),
-    Column("order", Integer),
-)
 
 
 class ExerciseService:

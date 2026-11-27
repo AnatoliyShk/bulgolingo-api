@@ -1,7 +1,8 @@
 from datetime import datetime
+from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, StringConstraints, model_validator
 
 MAX_NODES = 40
 
@@ -14,7 +15,7 @@ def node_count(depth: int, branching: int) -> int:
 
 
 class DialogueTreeRequest(BaseModel):
-    topic: str = Field(min_length=1)
+    topic: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
     level: str = Field("A1", pattern="^[ABC][12]$")
     depth: int = Field(3, ge=1, le=5)
     branching: int = Field(2, ge=1, le=4)

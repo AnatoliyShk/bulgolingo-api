@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
 from app.auth.models import User
-from app.database import get_db, utcnow
+from app.database import Page, get_db, utcnow
 from app.scripted_dialogues.models import ScriptedDialogue
 from app.scripted_lines.models import ScriptedLine
 from app.scripted_lines.schemas import (
@@ -46,11 +46,12 @@ async def list_scripted_lines(
     dialogue_id: uuid.UUID | None = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    page: Page = Depends(),
 ):
     query = _visible_lines(current_user)
     if dialogue_id is not None:
         query = query.where(ScriptedLine.dialogue_pk == await _dialogue_pk_or_404(dialogue_id, db, current_user))
-    result = await db.execute(query)
+    result = await db.execute(page.apply(query, ScriptedLine.pk))
     return result.scalars().all()
 
 

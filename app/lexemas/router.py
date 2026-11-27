@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_admin
 from app.auth.models import User
-from app.database import get_db, utcnow
+from app.database import Page, get_db, utcnow
 from app.exercises.models import Exercise
 from app.lexemas.models import WORD_UNIQUE_CONSTRAINT, Lexema, exercise_lexema
 from app.lexemas.schemas import LexemaCreate, LexemaOut, LexemaPatch, LexemaUpdate
@@ -48,6 +48,7 @@ async def list_lexemas(
     exercise_id: uuid.UUID | None = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    page: Page = Depends(),
 ):
     query = select(Lexema)
     if word is not None:
@@ -56,7 +57,7 @@ async def list_lexemas(
         query = query.join(exercise_lexema, exercise_lexema.c.lexema_id == Lexema.pk).where(
             exercise_lexema.c.exercise_id == await _exercise_pk_or_404(exercise_id, db)
         )
-    result = await db.execute(query)
+    result = await db.execute(page.apply(query, Lexema.pk))
     return result.scalars().all()
 
 

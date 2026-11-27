@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
 from app.auth.models import User
-from app.database import get_db, utcnow
+from app.database import Page, get_db, utcnow
 from app.scripted_dialogues.models import ScriptedDialogue, bots
 from app.scripted_dialogues.schemas import (
     ScriptedDialogueCreate,
@@ -49,13 +49,14 @@ async def list_scripted_dialogues(
     user_id: uuid.UUID | None = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    page: Page = Depends(),
 ):
     query = select(ScriptedDialogue).where(ScriptedDialogue.visible_to(current_user))
     if bot_id is not None:
         query = query.where(ScriptedDialogue.bot_id == bot_id)
     if user_id is not None:
         query = query.where(ScriptedDialogue.user_pk == await _user_pk_or_404(user_id, db, current_user))
-    result = await db.execute(query)
+    result = await db.execute(page.apply(query, ScriptedDialogue.pk))
     return result.scalars().all()
 
 

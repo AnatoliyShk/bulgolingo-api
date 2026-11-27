@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, SmallInteger, String, Text
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, Integer, SmallInteger, String, Table, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -76,3 +76,13 @@ class Exercise(Base):
         if self.decision_type == "fill_in_the_blank":
             clause = {"sentence": self.prompt or "", **clause}
         return clause
+
+
+# Laravel's ordered many-to-many link between lessons and exercises (bigint pks).
+exercise_lesson = Table(
+    "exercise_lesson",
+    Base.metadata,
+    Column("lesson_id", BigInteger),
+    Column("exercise_id", BigInteger),
+    Column("order", Integer),
+)

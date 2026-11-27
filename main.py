@@ -1,5 +1,3 @@
-from contextlib import asynccontextmanager
-
 from fastapi import FastAPI
 
 from app.auth.router import router as auth_router
@@ -13,19 +11,7 @@ from app.gemini.router import router as gemini_router
 from app.rag.router import router as rag_router
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # await init_db()
-
-    # await bot.set_webhook(url=settings.WEBHOOK_URL, secret_token=settings.WEBHOOK_SECRET_TOKEN)
-    # print(f"Webhook set: {settings.webhook_url}")
-    # yield
-    # await bot.delete_webhook()
-    # await bot.session.close()
-    # print("Webhook removed, bot session closed.")
-    yield
-
-app = FastAPI(title="Bot API", version="0.7.23", lifespan=lifespan)
+app = FastAPI(title="Bot API", version="0.7.26")
 
 app.include_router(auth_router)
 app.include_router(learning_paths_router)

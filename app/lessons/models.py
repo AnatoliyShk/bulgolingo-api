@@ -18,13 +18,6 @@ class Lesson(Base):
     updated_at: Mapped[DateTime] = mapped_column(DateTime, nullable=True)
 
 
-learning_path_lesson = Table(
-    "learning_path_lesson",
-    Base.metadata,
-    Column("learning_path_id", BigInteger),
-    Column("lesson_id", BigInteger),
-)
-
 # One row per exercise a user has finished (bigint pks). Lesson completion is derived from it, as in Laravel.
 user_exercise_completions = Table(
     "user_exercise_completions",

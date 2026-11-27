@@ -45,6 +45,10 @@ it does not own a separate database.
 ## Current endpoints
 Every endpoint requires `Authorization: Bearer <token>` except `GET /`, `GET /docs`/`/redoc`, and `POST /login` itself.
 
+Every list endpoint (`GET /learning-paths/`, `/lessons/`, `/exercises/`, `/lexemas/`, `/scripted-dialogues/`,
+`/scripted-lines/`) is paged: `?limit=` (default 100, max 500) and `?offset=` (default 0), ordered by
+creation. To fetch everything, keep raising `offset` by `limit` until a page comes back empty.
+
 ### General
 | Method | Route | Auth | Notes |
 |---|---|---|---|
@@ -181,6 +185,7 @@ Copy `.env.example` to `.env` and set:
 ```bash
 uv run uvicorn main:app --reload    # FastAPI server on :8000
 uv run python scheduler.py         # Telegram bot, separate process
+uv run pytest                      # tests (no DB or Gemini needed)
 ```
 
 ## Docker

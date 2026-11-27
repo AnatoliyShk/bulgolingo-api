@@ -6,8 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_admin
 from app.auth.models import User
-from app.database import get_db, utcnow
-from app.exercises.service import exercise_lesson
+from app.database import Page, get_db, utcnow
+from app.exercises.models import exercise_lesson
 from app.lessons.models import Lesson, user_exercise_completions
 from app.lessons.schemas import LessonCreate, LessonOut, LessonPatch, LessonUpdate
 
@@ -27,6 +27,7 @@ async def list_lessons(
     is_completed: bool | None = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    page: Page = Depends(),
 ):
     query = select(Lesson)
     if is_completed is not None:
@@ -44,7 +45,7 @@ async def list_lessons(
             .having(func.count(user_exercise_completions.c.exercise_id) == func.count(exercise_lesson.c.exercise_id))
         )
         query = query.where(Lesson.pk.in_(completed) if is_completed else Lesson.pk.not_in(completed))
-    result = await db.execute(query)
+    result = await db.execute(page.apply(query, Lesson.pk))
     return result.scalars().all()
 
 

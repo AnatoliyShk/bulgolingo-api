@@ -13,6 +13,7 @@ A Bulgarian language learning app, built entirely on FastAPI, with two runtime p
 ```bash
 uv run uvicorn main:app --reload    # FastAPI server on :8000
 uv run python scheduler.py          # Telegram bot + scheduler (separate process)
+uv run pytest                       # tests: pure rule checks, no DB or Gemini needed
 ```
 
 ### Docker
@@ -49,7 +50,7 @@ Copy `.env.example` to `.env`. Required variables:
 
 All persistence goes through SQLAlchemy async models under `app/`; there is no other ORM or data layer in this project.
 
-The Postgres database is owned by a separate Laravel/Sail app (see `DATABASE_URL` — a `laravel` user), not by this repo, and this repo has no migrations of its own. `User`, `LearningPath`, `Lesson`, `Exercise`, `Lexema`, `ScriptedDialogue`, and `ScriptedLine` each have a real bigint `id` primary key (Laravel-managed) plus a separate unique `uuid` column (UUIDv7, also Laravel-managed). The SQLAlchemy models expose this as two attributes: `pk` (`Mapped[int]`, mapped to the DB's `id` column — internal only, used for joins against the legacy bigint association tables `learning_path_lesson`/`exercise_lesson`) and `id` (`Mapped[uuid.UUID]`, mapped to the DB's `uuid` column — this is the public identifier used in every route path param, every response schema, and the JWT `sub` claim). Never use `db.get(Model, ...)` for these models since the primary key (`pk`) is not the public id — look up by `select(Model).where(Model.id == given_uuid)` instead.
+The Postgres database is owned by a separate Laravel/Sail app (see `DATABASE_URL` — a `laravel` user), not by this repo, and this repo has no migrations of its own. `User`, `LearningPath`, `Lesson`, `Exercise`, `Lexema`, `ScriptedDialogue`, and `ScriptedLine` each have a real bigint `id` primary key (Laravel-managed) plus a separate unique `uuid` column (UUIDv7, also Laravel-managed). The SQLAlchemy models expose this as two attributes: `pk` (`Mapped[int]`, mapped to the DB's `id` column — internal only, used for joins against the legacy bigint association tables such as `exercise_lesson`/`exercise_lexema`) and `id` (`Mapped[uuid.UUID]`, mapped to the DB's `uuid` column — this is the public identifier used in every route path param, every response schema, and the JWT `sub` claim). Never use `db.get(Model, ...)` for these models since the primary key (`pk`) is not the public id — look up by `select(Model).where(Model.id == given_uuid)` instead.
 
 ### Services
 - `ExerciseService` — static helpers over `app.exercises.models.Exercise`: looks one up by uuid and picks a random `fill_in_the_blank` exercise for the scheduler
@@ -71,4 +72,4 @@ The Postgres database is owned by a separate Laravel/Sail app (see `DATABASE_URL
 - `scripted_dialogues.user_id` and `scripted_lines.scripted_dialogue_id` are real bigint foreign keys to the parent `pk`, so the models map them as `user_pk` / `dialogue_pk` and expose the parent's public uuid through the `user_id` / `dialogue_id` properties (backed by a `selectin` relationship). Routes take and return those uuids and resolve them to a `pk` before writing.
 - `lexemas.language_id` is required and words are unique per `(language_id, word)` (Laravel's `lexemas_language_id_word_unique`). New words take Laravel's default content language (`bg`, its `learning.default_language` config) via a column default; a duplicate word on create/PUT/PATCH returns 409.
 - `lexemas` has no exercise column: words link to exercises many-to-many through `exercise_lexema` (bigint `exercise_id`/`lexema_id`, defined in `app/lexemas/models.py`). `GET /lexemas/?exercise_id=` filters through it; the API does not create or remove those links. The RAG index uses the oldest linked exercise's `prompt` and `explanation` as context for each word.
-- The `learning_path_lesson` and `exercise_lesson` association tables (in `app/lessons/models.py` and `app/exercises/service.py`) store plain bigint columns for `lesson_id`/`exercise_id`/`learning_path_id` (referencing the internal `pk`, not the public `uuid`) and declare no `ForeignKey` constraint to the parent tables
+- The `exercise_lesson` association table (in `app/exercises/models.py`) stores plain bigint columns for `lesson_id`/`exercise_id` (referencing the internal `pk`, not the public `uuid`) and declares no `ForeignKey` constraint to the parent tables
