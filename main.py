@@ -11,7 +11,7 @@ from app.gemini.router import router as gemini_router
 from app.rag.router import router as rag_router
 
 
-app = FastAPI(title="Bot API", version="0.7.26")
+app = FastAPI(title="Bot API", version="0.7.27")
 
 app.include_router(auth_router)
 app.include_router(learning_paths_router)

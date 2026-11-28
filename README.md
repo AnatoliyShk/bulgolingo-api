@@ -160,8 +160,9 @@ both languages.
   the node's `id`/`parent_id` inside `clause` — and `dialogue_id` comes back populated.
 - Generation runs at `temperature=0` with a fixed seed, and the result is validated to be a complete
   tree of the requested shape (one retry with the fault fed back to the model, then `502`).
-- The vector index lives in memory and is rebuilt automatically when lexemas are added or removed;
-  call `POST /rag/index` after editing existing words in place. `POST /rag/index?since=2026-09-01`
+- The vector index lives in memory and keeps itself current: each search notices words added, edited
+  (here or in Laravel) or deleted since the last build and re-embeds only those. `POST /rag/index` is for
+  forcing it, e.g. after an exercise linked to a word changes its sentence. `POST /rag/index?since=2026-09-01`
   re-embeds only the lexemas created or updated at or after that moment and merges them into the
   existing index, leaving every other vector untouched — `since` also accepts a full timestamp
   (`2026-09-01T12:30:00Z`). The response reports `embedded`, `total` and `partial`; a dated call on a

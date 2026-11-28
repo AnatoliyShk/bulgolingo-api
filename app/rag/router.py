@@ -51,8 +51,8 @@ async def rebuild_index(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    """Re-embed lexemas. Only needed when existing words are edited in place —
-    added and removed ones are picked up automatically."""
+    """Re-embed lexemas. Added, edited and removed words are picked up automatically; this is for
+    forcing it, e.g. after a linked exercise's sentence changes (that does not touch the word's stamp)."""
     result = await lexema_rag_service.build_index(db, since)
     return LexemaIndexOut(
         embedded=result.embedded,

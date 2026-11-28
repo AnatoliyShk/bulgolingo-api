@@ -11,7 +11,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 
 import numpy as np
-from sqlalchemy import func, select
+from sqlalchemy import BigInteger, any_, bindparam, func, or_, select
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.concurrency import run_in_threadpool
 
@@ -46,6 +47,10 @@ class IndexResult:
     partial: bool
 
 
+# when a word was last written; Laravel sets both columns on every save
+_STAMP = func.coalesce(Lexema.updated_at, Lexema.created_at)
+
+
 def _as_naive_utc(moment: datetime) -> datetime:
     """Laravel's `timestamps()` columns are `timestamp without time zone`, so an
     aware bound has to be flattened to UTC before it can be compared."""
@@ -60,7 +65,7 @@ class LexemaRagService:
         self._entries: dict[int, _IndexEntry] = {}
         self._order: list[int] = []
         self._matrix: np.ndarray = np.empty((0, rag.EMBED_DIM), dtype=np.float32)
-        self._fingerprint: tuple[int, int | None] | None = None
+        self._fingerprint: tuple[int, int | None, datetime | None] | None = None
         self._lock = asyncio.Lock()
 
     @property
@@ -74,14 +79,15 @@ class LexemaRagService:
         return self._fingerprint is not None
 
     @staticmethod
-    async def _current_fingerprint(db: AsyncSession) -> tuple[int, int | None]:
-        """Cheap staleness probe: how many lexemas there are and the newest pk."""
-        result = await db.execute(select(func.count(Lexema.pk), func.max(Lexema.pk)))
-        count, max_pk = result.one()
-        return int(count), max_pk
+    async def _current_fingerprint(db: AsyncSession) -> tuple[int, int | None, datetime | None]:
+        """Cheap staleness probe: how many lexemas there are, the newest pk, and the newest
+        created/updated stamp, so in-place edits (here or in Laravel) are noticed too."""
+        result = await db.execute(select(func.count(Lexema.pk), func.max(Lexema.pk), func.max(_STAMP)))
+        count, max_pk, newest = result.one()
+        return int(count), max_pk, newest
 
     async def ensure_index(self, db: AsyncSession) -> int:
-        """Rebuild the index only if the lexemas table changed; return its size."""
+        """Refresh the index only if the lexemas table changed; return its size."""
         fingerprint = await self._current_fingerprint(db)
         if self._fingerprint == fingerprint:
             return self.size
@@ -102,13 +108,17 @@ class LexemaRagService:
             # re-checked under the lock: a request that waited here may find the index already rebuilt
             if only_if_stale and self._fingerprint == fingerprint:
                 return IndexResult(embedded=0, total=self.size, partial=False)
+            if only_if_stale and self.is_built and self._fingerprint[2] is not None:
+                # an automatic refresh re-embeds only what changed since the last build, not the whole table
+                since = self._fingerprint[2]
             partial = since is not None and self.is_built
 
             query = select(Lexema).order_by(Lexema.pk)
             if partial:
-                query = query.where(
-                    func.coalesce(Lexema.updated_at, Lexema.created_at) >= _as_naive_utc(since)
-                )
+                existing = set((await db.execute(select(Lexema.pk))).scalars())
+                # also take words the index lacks: one inserted with an older stamp would slip past `since`
+                missing = bindparam("missing", sorted(existing - self._entries.keys()), type_=ARRAY(BigInteger))
+                query = query.where(or_(_STAMP >= _as_naive_utc(since), Lexema.pk == any_(missing)))
             lexemas = (await db.execute(query)).scalars().all()
 
             # context for each word: the sentence and explanation of its oldest linked exercise, if any
@@ -130,7 +140,6 @@ class LexemaRagService:
 
             if partial:
                 # drop words deleted since the last build, or they linger once the fingerprint matches
-                existing = set((await db.execute(select(Lexema.pk))).scalars())
                 self._entries = {pk: entry for pk, entry in self._entries.items() if pk in existing}
             else:
                 self._entries = {}
